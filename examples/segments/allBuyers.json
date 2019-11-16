@@ -1,0 +1,17 @@
+{
+    "info": {},
+    "query": {
+        "filters": [
+            {
+                "search": "and",
+                "design": {
+                    "eq": [
+                        {
+                            "status": "WIDGET_LAZY"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
