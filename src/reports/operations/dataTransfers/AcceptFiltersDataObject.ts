@@ -1,4 +1,4 @@
-import { IsDefined, IsString, IsNumber } from "class-validator";
+import {IsDefined, IsString, IsNumber, IsBoolean} from "class-validator";
 
 export class AcceptFiltersDataObject {
     @IsDefined()
@@ -24,6 +24,10 @@ export class AcceptFiltersDataObject {
     @IsDefined()
     @IsString({ each: true })
     oses: string[]
+
+    @IsDefined()
+    @IsBoolean()
+    checked: boolean
 
     @IsDefined()
     @IsNumber()

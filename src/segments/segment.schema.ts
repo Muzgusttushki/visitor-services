@@ -11,6 +11,7 @@ const SegmentSchema = new mongoose.Schema({
     target: String,
     updates: Boolean,
     last: Date,
+    automation: Boolean,
     sources: Array<string>(),
     then: {
         users: {
@@ -41,6 +42,7 @@ interface Segments extends mongoose.Document {
     target: string;
     updates: boolean;
     last: Date;
+    automation: boolean;
     sources: string[];
     then: {
         users: {

@@ -1,6 +1,7 @@
 import { Document } from 'mongoose';
 
 export interface OperationObject extends Document {
+    os(os: any);
   session: string;
   address: string;
   addressInfo: object;
@@ -13,4 +14,6 @@ export interface OperationObject extends Document {
   status: string;
   event: object;
   utm: object;
+  buyer: object;
+  url: string;
 }

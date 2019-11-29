@@ -27,6 +27,10 @@ export class PaymentsFiltersDataObject {
     @IsNumber({}, { each: true })
     ticketInTransaction: number[]
 
+    @IsDefined()
+    @IsNumber({}, {each: true})
+    transactions: number[]
+
     /**
      * @description город совершения операции, транзакции (пустое поле - отображает все доступные)
      */

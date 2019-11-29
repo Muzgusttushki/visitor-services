@@ -8,7 +8,7 @@ import { OperationsModule } from './reports/operations/operations.module';
 import { readFileSync } from 'fs';
 import { format } from 'util';
 import { SegmentsModule } from './segments/segments.module';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { TrashModule } from './trash/trash.module';
 const url = format(
   'mongodb://%s:%s@%s/db1?replicaSet=%s&authSource=%s&ssl=true',
   'collector',
@@ -18,33 +18,35 @@ const url = format(
   ].join(','),
   'rs01',
   'db1'
-)
+);
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const DEBUG_MODE = false;
+
 const options = {
   useNewUrlParser: true,
   replicaSet: {
     sslCA: readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
   },
   useUnifiedTopology: true,
-  useFindAndModify: true,
+  useFindAndModify: false,
   useCreateIndex: true,
-} as MongooseModuleOptions
+} as MongooseModuleOptions;
 
 const MONGO_URL =
   'mongodb://localhost:27017/db1';
 const MONGO_OPTIONS = {
   useNewUrlParser: true,
-  useFindAndModify: true,
+  useFindAndModify: false,
   useUnifiedTopology: true,
   useCreateIndex: true
 };
 
 @Module({
-  imports: [MongooseModule.forRoot(url, options),
+  imports: [MongooseModule.forRoot(DEBUG_MODE ? MONGO_URL : url ,
+      DEBUG_MODE ? MONGO_OPTIONS : options),
     SignUpModule,
     ManagementModule,
     BuyersModule,
-    DashboardModule, OperationsModule, SegmentsModule],
+    DashboardModule, OperationsModule, SegmentsModule, TrashModule],
 })
 export class AppModule { }

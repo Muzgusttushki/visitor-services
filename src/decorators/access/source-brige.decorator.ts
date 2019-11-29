@@ -19,9 +19,9 @@ export const SourceBrige = createParamDecorator(async (_, req: Request) => {
     const rangeDateTime = [
         new Date(Date.parse(timeInterval.start)),
         new Date(Date.parse(timeInterval.end))
-    ]
+    ];
 
-    rangeDateTime[0].setUTCDate(rangeDateTime[0].getUTCDate() + 1)
+    rangeDateTime[0].setUTCDate(rangeDateTime[0].getUTCDate())
     rangeDateTime[0].setUTCHours(0, 0, 0, 0);
     rangeDateTime[1].setUTCHours(23, 59, 59);
 
@@ -33,7 +33,7 @@ export const SourceBrige = createParamDecorator(async (_, req: Request) => {
     prepareSources.date = {
         $lte: new Date(rangeDateTime[1]),
         $gte: new Date(rangeDateTime[0])
-    }
+    };
 
     if (sources.length) {
         if (

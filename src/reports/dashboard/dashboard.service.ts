@@ -1,857 +1,891 @@
 import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
+    BadRequestException,
+    ForbiddenException,
+    Injectable,
 } from '@nestjs/common';
-import { DashboardObject } from '../../transferDataObject/dashboard/dashboardObject';
-import { InjectModel } from '@nestjs/mongoose';
-import { OperationObject } from '../../transferDataObject/buyers/OperationObject';
-import { AccountObject } from '../../transferDataObject/account/AccountObject';
-import { Model } from 'mongoose';
+import {DashboardObject} from '../../transferDataObject/dashboard/dashboardObject';
+import {InjectModel} from '@nestjs/mongoose';
+import {OperationObject} from '../../transferDataObject/buyers/OperationObject';
+import {AccountObject} from '../../transferDataObject/account/AccountObject';
+import {Model} from 'mongoose';
 
 @Injectable()
 export class DashboardService {
-  constructor(
-    @InjectModel('buyers')
-    private readonly operationsSchema: Model<OperationObject>,
-  ) { }
-  async getDashboardStats(stage: DashboardObject, session: AccountObject): Promise<object> {
-    if (stage.timeInterval.start > stage.timeInterval.end) {
-      return new BadRequestException();
+    constructor(
+        @InjectModel('buyers')
+        private readonly operationsSchema: Model<OperationObject>,
+    ) {
     }
 
-    const timeRange = {
-      start: new Date(Date.parse(stage.timeInterval.start)),
-      end: new Date(Date.parse(stage.timeInterval.end)),
-    };
+    async getDashboardStats(stage: DashboardObject, session: AccountObject): Promise<object> {
+        if (stage.timeInterval.start > stage.timeInterval.end) {
+            return new BadRequestException();
+        }
 
-    timeRange.start.setUTCHours(0, 0, 0, 0);
-    timeRange.start.setUTCDate(timeRange.start.getUTCDate() + 1)
+        const timeRange = {
+            start: new Date(Date.parse(stage.timeInterval.start)),
+            end: new Date(Date.parse(stage.timeInterval.end)),
+        };
 
-    timeRange.end.setUTCHours(23, 59, 59, 0);
+        timeRange.start.setUTCHours(0, 0, 0, 0);
+        timeRange.start.setUTCDate(timeRange.start.getUTCDate() + 1)
 
-    const prepareSources = { source: {} };
-    /**
-     * @description Проверяем, не указали определенный источник в запросе.
-     */
-    if (stage.sources && stage.sources.length) {
-      /**
-       * @description В случае, если нарушины права доступа, возвращаем ошибку.
-       */
-      if (
-        session.role < 6 &&
-        !stage.sources.every(resolve => session.sources.includes(resolve))
-      ) {
-        throw new ForbiddenException();
-      }
+        timeRange.end.setUTCHours(23, 59, 59, 0);
 
-      prepareSources.source = { $in: stage.sources };
-    } else {
-      prepareSources.source = { $in: session.sources };
-    }
-
-    const backToDays =
-      Math.ceil(
-        Math.abs(timeRange.end.getTime() - timeRange.start.getTime()) /
-        (1000 * 3600 * 24),
-      ) || 1;
-
-    const previewTimeRange = {
-      start: new Date(
-        timeRange.start.getUTCFullYear(),
-        timeRange.start.getUTCMonth(),
-        timeRange.start.getUTCDate() - (backToDays + 1),
-      ),
-      end: new Date(
-        timeRange.start.getUTCFullYear(),
-        timeRange.start.getUTCMonth(),
-        (timeRange.start.getUTCDate() - 1),
-      ),
-    };
-
-    previewTimeRange.start.setUTCHours(0, 0, 0, 0);
-    previewTimeRange.end.setUTCHours(23, 59, 59, 0);
-    previewTimeRange.start.setUTCDate(previewTimeRange.start.getUTCDate() + 1)
-
-    /**
-     * Ниже идут агрегации, которые позволяют,
-     * производит произвольные расчеты, внтутри mongodb
-     */
-
-    /**
-     * Общие характиристики компании
-     */
-    const request = this.operationsSchema
-      .aggregate([
-        { $match: { ...prepareSources } },
-        {
-          $group: {
-            _id: null, allOperations: {
-              $push: {
-                date: '$$CURRENT.date',
-                status: '$$CURRENT.status',
-                tickets: '$$CURRENT.tickets',
-                buyer: {
-                  phone: '$$CURRENT.buyer.phone',
-                  name: '$$CURRENT.buyer.name'
-                },
-                event: { name: '$$CURRENT.event.name' }
-              }
+        const prepareSources = {source: {}};
+        /**
+         * @description Проверяем, не указали определенный источник в запросе.
+         */
+        if (stage.sources && stage.sources.length) {
+            /**
+             * @description В случае, если нарушины права доступа, возвращаем ошибку.
+             */
+            if (
+                session.role < 6 &&
+                !stage.sources.every(resolve => session.sources.includes(resolve))
+            ) {
+                throw new ForbiddenException();
             }
-          }
-        },
-        {
-          $addFields: {
-            previousSales: {
-              $filter: {
-                input: '$allOperations',
-                as: 'item',
-                cond: {
-                  $and: [
-                    { $lte: ['$$item.date', previewTimeRange.end] },
-                    { $gte: ['$$item.date', previewTimeRange.start] },
-                    { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
-                  ],
+
+            prepareSources.source = {$in: stage.sources};
+        } else {
+            prepareSources.source = {$in: session.sources};
+        }
+
+        const backToDays =
+            Math.ceil(
+                Math.abs(timeRange.end.getTime() - timeRange.start.getTime()) /
+                (1000 * 3600 * 24),
+            ) || 1;
+
+        const previewTimeRange = {
+            start: new Date(
+                timeRange.start.getUTCFullYear(),
+                timeRange.start.getUTCMonth(),
+                timeRange.start.getUTCDate() - (backToDays + 1),
+            ),
+            end: new Date(
+                timeRange.start.getUTCFullYear(),
+                timeRange.start.getUTCMonth(),
+                (timeRange.start.getUTCDate() - 1),
+            ),
+        };
+
+        previewTimeRange.start.setUTCHours(0, 0, 0, 0);
+        previewTimeRange.end.setUTCHours(23, 59, 59, 0);
+        previewTimeRange.start.setUTCDate(previewTimeRange.start.getUTCDate() + 1)
+
+        /**
+         * Ниже идут агрегации, которые позволяют,
+         * производит произвольные расчеты, внтутри mongodb
+         */
+
+        /**
+         * Общие характиристики компании
+         */
+        const request = this.operationsSchema
+            .aggregate([
+                {$match: {...prepareSources}},
+                {
+                    $group: {
+                        _id: null, allOperations: {
+                            $push: {
+                                date: '$$CURRENT.date',
+                                status: '$$CURRENT.status',
+                                tickets: '$$CURRENT.tickets',
+                                buyer: {
+                                    phone: '$$CURRENT.buyer.phone',
+                                    name: '$$CURRENT.buyer.name'
+                                },
+                                event: {name: '$$CURRENT.event.name'}
+                            }
+                        }
+                    }
                 },
-              },
-            },
-            sales: {
-              $filter: {
-                input: '$allOperations',
-                as: 'item',
-                cond: {
-                  $and: [
-                    { $lte: ['$$item.date', timeRange.end] },
-                    { $gte: ['$$item.date', timeRange.start] },
-                    { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
-                  ],
-                },
-              },
-            },
-            operations: {
-              $filter: {
-                input: '$allOperations',
-                as: 'item',
-                cond: {
-                  $and: [
-                    { $lte: ['$$item.date', timeRange.end] },
-                    { $gte: ['$$item.date', timeRange.start] },
-                  ],
-                },
-              },
-            },
-            previousOperations: {
-              $filter: {
-                input: '$allOperations',
-                as: 'item',
-                cond: {
-                  $and: [
-                    { $lte: ['$$item.date', previewTimeRange.end] },
-                    { $gte: ['$$item.date', previewTimeRange.start] },
-                  ],
-                },
-              },
-            },
-          },
-        },
-        {
-          $addFields: {
-            tickets: {
-              $reduce: {
-                input: '$sales.tickets',
-                initialValue: [],
-                in: { $concatArrays: ['$$value', '$$this'] },
-              },
-            },
-            previousTickets: {
-              $reduce: {
-                input: '$previousSales.tickets',
-                initialValue: [],
-                in: { $concatArrays: ['$$value', '$$this'] },
-              },
-            },
-          },
-        },
-        {
-          $addFields: {
-            earnings: {
-              $reduce: {
-                input: '$tickets',
-                initialValue: 0,
-                in: {
-                  $add: [
-                    '$$value',
-                    {
-                      $cond: {
-                        if: { $eq: ['$this.quantity', 1] },
-                        then: '$$this.price',
-                        else: {
-                          $multiply: ['$$this.price', '$$this.quantity'],
+                {
+                    $addFields: {
+                        previousSales: {
+                            $filter: {
+                                input: '$allOperations',
+                                as: 'item',
+                                cond: {
+                                    $and: [
+                                        {$lte: ['$$item.date', previewTimeRange.end]},
+                                        {$gte: ['$$item.date', previewTimeRange.start]},
+                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                    ],
+                                },
+                            },
                         },
-                      },
+                        sales: {
+                            $filter: {
+                                input: '$allOperations',
+                                as: 'item',
+                                cond: {
+                                    $and: [
+                                        {$lte: ['$$item.date', timeRange.end]},
+                                        {$gte: ['$$item.date', timeRange.start]},
+                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                    ],
+                                },
+                            },
+                        },
+                        operations: {
+                            $filter: {
+                                input: '$allOperations',
+                                as: 'item',
+                                cond: {
+                                    $and: [
+                                        {$lte: ['$$item.date', timeRange.end]},
+                                        {$gte: ['$$item.date', timeRange.start]},
+                                    ],
+                                },
+                            },
+                        },
+                        previousOperations: {
+                            $filter: {
+                                input: '$allOperations',
+                                as: 'item',
+                                cond: {
+                                    $and: [
+                                        {$lte: ['$$item.date', previewTimeRange.end]},
+                                        {$gte: ['$$item.date', previewTimeRange.start]},
+                                    ],
+                                },
+                            },
+                        },
                     },
-                  ],
                 },
-              },
-            },
-
-            previousEarnings: {
-              $reduce: {
-                input: '$previousTickets',
-                initialValue: 0,
-                in: {
-                  $add: [
-                    '$$value',
-                    {
-                      $cond: {
-                        if: { $eq: ['$this.quantity', 1] },
-                        then: '$$this.price',
-                        else: {
-                          $multiply: ['$$this.price', '$$this.quantity'],
+                {
+                    $addFields: {
+                        tickets: {
+                            $reduce: {
+                                input: '$sales.tickets',
+                                initialValue: [],
+                                in: {$concatArrays: ['$$value', '$$this']},
+                            },
                         },
-                      },
+                        previousTickets: {
+                            $reduce: {
+                                input: '$previousSales.tickets',
+                                initialValue: [],
+                                in: {$concatArrays: ['$$value', '$$this']},
+                            },
+                        },
                     },
-                  ],
                 },
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            _id: false,
-            operations: { $size: '$operations' },
-            previousOperations: { $size: '$previousOperations' },
-            sales: { $size: '$sales' },
-            previousSales: { $size: '$previousSales' },
-            events: { $size: { $setUnion: ['$sales.event.name', []] } },
-            previousEvents: { $size: { $setUnion: ['$previousSales.event.name', []] } },
-            earnings: true,
-            previousEarnings: true,
-            buyers: {
-              $size: {
-                $let: {
-                  vars: {
-                    buyers: {
-                      $filter: {
-                        input: '$allOperations',
-                        as: 'item',
-                        cond: {
-                          $and: [
-                            { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
-                          ],
+                {
+                    $addFields: {
+                        earnings: {
+                            $reduce: {
+                                input: '$tickets',
+                                initialValue: 0,
+                                in: {
+                                    $add: [
+                                        '$$value',
+                                        {
+                                            $cond: {
+                                                if: {$eq: ['$this.quantity', 1]},
+                                                then: '$$this.price',
+                                                else: {
+                                                    $multiply: ['$$this.price', '$$this.quantity'],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
                         },
-                      }
-                    }
-                  },
-                  in: { $setUnion: ['$$buyers.buyer.phone', []] }
-                }
-              }
-            },
-            previousBuyers: {
-              $size: {
-                $let: {
-                  vars: {
-                    buyers: {
-                      $filter: {
-                        input: '$allOperations',
-                        as: 'item',
-                        cond: {
-                          $and: [
-                            { $gte: ['$$item.date', timeRange.start] },
-                            { $lte: ['$$item.date', timeRange.end] },
-                            { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
-                          ],
+
+                        previousEarnings: {
+                            $reduce: {
+                                input: '$previousTickets',
+                                initialValue: 0,
+                                in: {
+                                    $add: [
+                                        '$$value',
+                                        {
+                                            $cond: {
+                                                if: {$eq: ['$this.quantity', 1]},
+                                                then: '$$this.price',
+                                                else: {
+                                                    $multiply: ['$$this.price', '$$this.quantity'],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
                         },
-                      }
+                    },
+                },
+                {
+                    $project: {
+                        _id: false,
+                        operations: {$size: '$operations'},
+                        previousOperations: {$size: '$previousOperations'},
+                        sales: {$size: '$sales'},
+                        previousSales: {$size: '$previousSales'},
+                        events: {$size: {$setUnion: ['$sales.event.name', []]}},
+                        previousEvents: {$size: {$setUnion: ['$previousSales.event.name', []]}},
+                        earnings: true,
+                        previousEarnings: true,
+                        buyers: {
+                            $size: {
+                                $let: {
+                                    vars: {
+                                        buyers: {
+                                            $filter: {
+                                                input: '$allOperations',
+                                                as: 'item',
+                                                cond: {
+                                                    $and: [
+                                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                                    ],
+                                                },
+                                            }
+                                        }
+                                    },
+                                    in: {$setUnion: ['$$buyers.buyer.phone', []]}
+                                }
+                            }
+                        },
+                        previousBuyers: {
+                            $size: {
+                                $let: {
+                                    vars: {
+                                        buyers: {
+                                            $filter: {
+                                                input: '$allOperations',
+                                                as: 'item',
+                                                cond: {
+                                                    $and: [
+                                                        {$gte: ['$$item.date', timeRange.start]},
+                                                        {$lte: ['$$item.date', timeRange.end]},
+                                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                                    ],
+                                                },
+                                            }
+                                        }
+                                    },
+                                    in: {$setUnion: ['$$buyers.buyer.phone', []]}
+                                }
+                            }
+                        }
+                    },
+                },
+                {
+                    $project: {
+                        /**
+                         * operations
+                         */
+                        percentOperations: {
+                            $cond: {
+                                if: {$eq: ['$previousOperations', 0]},
+                                then: 0,
+                                else: {$subtract: [{$multiply: [{$divide: ['$operations', '$previousOperations']}, 100]}, 100]}
+                            }
+                        },
+                        previousOperations: true,
+                        operations: true,
+
+                        /**
+                         * sales
+                         */
+                        percentSales: {
+                            $cond: {
+                                if: {$eq: ['$previousSales', 0]},
+                                then: 0,
+                                else: {$subtract: [{$multiply: [{$divide: ['$sales', '$previousSales']}, 100]}, 100]}
+                            }
+                        },
+                        sales: true,
+                        previousSales: true,
+
+                        /**
+                         * earnings
+                         */
+                        percentEarnings: {
+                            $cond: {
+                                if: {$eq: ['$previousEarnings', 0]},
+                                then: 0,
+                                else: {$subtract: [{$multiply: [{$divide: ['$earnings', '$previousEarnings']}, 100]}, 100]}
+                            }
+                        },
+                        earnings: true,
+                        previousEarnings: true,
+
+                        /**
+                         * events
+                         */
+                        percentEvents: {
+                            $cond: {
+                                if: {$eq: ['$previousEvents', 0]},
+                                then: 0,
+                                else: {$subtract: [{$multiply: [{$divide: ['$events', '$previousEvents']}, 100]}, 100]}
+                            }
+                        },
+                        events: true,
+                        previousEvents: true,
+
+                        /**
+                         * buyers
+                         */
+                        buyers: true,
+                        previousBuyers: true,
+                        percentBuyers: {
+                            $cond: {
+                                if: {$eq: ['$buyers', 0]},
+                                then: 0,
+                                else: {$multiply: [{$divide: ['$previousBuyers', '$buyers']}, 100]}
+                            }
+                        },
+
+
+                        previousAverageEarnings: {
+                            $cond: {
+                                if: {$eq: ['$previousSales', 0]},
+                                then: 0,
+                                else: {$divide: ['$previousEarnings', '$previousSales']}
+                            }
+                        },
+
+                        averageEarnings: {
+                            $cond: {
+                                if: {$eq: ['$sales', 0]},
+                                then: 0,
+                                else: {$divide: ['$earnings', '$sales']}
+                            }
+                        }
                     }
-                  },
-                  in: { $setUnion: ['$$buyers.buyer.phone', []] }
-                }
-              }
-            }
-          },
-        },
-        {
-          $project: {
-            /**
-             * operations
-             */
-            percentOperations: {
-              $cond: {
-                if: { $eq: ['$previousOperations', 0] },
-                then: 0,
-                else: { $subtract: [{ $multiply: [{ $divide: ['$operations', '$previousOperations'] }, 100] }, 100] }
-              }
-            },
-            previousOperations: true,
-            operations: true,
-
-            /**
-             * sales
-             */
-            percentSales: {
-              $cond: {
-                if: { $eq: ['$previousSales', 0] },
-                then: 0,
-                else: { $subtract: [{ $multiply: [{ $divide: ['$sales', '$previousSales'] }, 100] }, 100] }
-              }
-            },
-            sales: true,
-            previousSales: true,
-
-            /**
-             * earnings
-             */
-            percentEarnings: {
-              $cond: {
-                if: { $eq: ['$previousEarnings', 0] },
-                then: 0,
-                else: { $subtract: [{ $multiply: [{ $divide: ['$earnings', '$previousEarnings'] }, 100] }, 100] }
-              }
-            },
-            earnings: true,
-            previousEarnings: true,
-
-            /**
-             * events
-             */
-            percentEvents: {
-              $cond: {
-                if: { $eq: ['$previousEvents', 0] },
-                then: 0,
-                else: { $subtract: [{ $multiply: [{ $divide: ['$events', '$previousEvents'] }, 100] }, 100] }
-              }
-            },
-            events: true,
-            previousEvents: true,
-
-            /**
-             * buyers
-             */
-            buyers: true,
-            previousBuyers: true,
-            percentBuyers: {
-              $cond: {
-                if: { $eq: ['$buyers', 0] },
-                then: 0,
-                else: { $multiply: [{ $divide: ['$previousBuyers', '$buyers'] }, 100] }
-              }
-            },
-
-
-            previousAverageEarnings: {
-              $cond: {
-                if: { $eq: ['$previousSales', 0] },
-                then: 0,
-                else: { $divide: ['$previousEarnings', '$previousSales'] }
-              }
-            },
-
-            averageEarnings: {
-              $cond: {
-                if: { $eq: ['$sales', 0] },
-                then: 0,
-                else: { $divide: ['$earnings', '$sales'] }
-              }
-            }
-          }
-        }, {
-          $addFields: {
-            percentAverageEarnings: {
-              $cond: {
-                if: { $eq: ['$averageEarnings', 0] },
-                then: 0,
-                else: { $subtract: [{ $multiply: [{ $divide: ['$previousAverageEarnings', '$averageEarnings'] }, 100] }, 100] }
-              }
-            }
-          }
-        }
-      ]);
-    return (await request.allowDiskUse(true).exec()).shift();
-
-  }
-  /**
-   * 
-   * @param stage 
-   * @param insulation 
-   * @description статистика устройств
-   */
-  async graphicsDevices(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const request = await this.operationsSchema.aggregate([
-      { $match: insulation },
-      { $group: { _id: null, devices: { $push: { name: '$os.name', status: '$status' } } } },
-      {
-        $project: {
-          _id: false,
-          devices: true,
-
-          transactions: {
-            phones: {
-              $size: {
-                $filter: {
-                  input: '$devices',
-                  as: 'item',
-                  cond: {
-                    $and: [
-                      { $in: ['$$item.name', ['iOS', 'Android']] },
-                      { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
-                    ]
-                  }
-                }
-              }
-            },
-
-            desktops: {
-              $size: {
-                $filter: {
-                  input: '$devices',
-                  as: 'item',
-                  cond: {
-                    $and: [
-                      { $in: ['$$item.name', ['OS X', 'Windows', 'Linux']] },
-                      { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-
-          operations: {
-            phones: {
-              $size: {
-                $filter: {
-                  input: '$devices',
-                  as: 'item',
-                  cond: {
-                    $and: [
-                      { $in: ['$$item.name', ['iOS', 'Android']] },
-                      { $ne: ['$$item.status', 'WIDGET_PAYMENT'] }
-                    ]
-                  }
-                }
-              }
-            },
-
-            desktops: {
-              $size: {
-                $filter: {
-                  input: '$devices',
-                  as: 'item',
-                  cond: {
-                    $and: [
-                      { $in: ['$$item.name', ['OS X', 'Windows', 'Linux']] },
-                      { $ne: ['$$item.status', 'WIDGET_PAYMENT'] }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          transactions: {
-            phones: 1,
-            desktops: 1,
-            others: {
-              $subtract: [{
-                $size: {
-                  $filter:
-                    { input: '$devices', as: 'item', cond: { $eq: ['$$item.status', 'WIDGET_PAYMENT'] } }
-                }
-              },
-              { $sum: ['$transactions.phones', '$transactions.desktops'] }]
-            }
-          },
-
-          operations: {
-            phones: 1,
-            desktops: 1,
-            others: {
-              $subtract: [{
-                $size: {
-                  $filter:
-                    { input: '$devices', as: 'item', cond: { $ne: ['$$item.status', 'WIDGET_PAYMENT'] } }
-                }
-              },
-              { $sum: ['$operations.phones', '$operations.desktops'] }]
-            }
-          }
-        }
-      }
-    ]).exec()
-
-    return request[0] || null;
-  }
-
-  async graphicsSales(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const startDate = new Date(Date.parse(stage.timeInterval.start));
-    const endDate = new Date(Date.parse(stage.timeInterval.start));
-
-    const distanceInDay = Math.ceil(Math.abs(new Date(stage.timeInterval.end).getTime() -
-      new Date(stage.timeInterval.start).getTime()) / (1000 * 3600 * 24)) || 1
-
-    startDate.setUTCHours(0, 0, 0, 0);
-    endDate.setUTCHours(23, 59, 59, 59);
-    endDate.setUTCDate(endDate.getUTCDate() + 1)
-
-    endDate.setUTCHours(0, 0, 0, 0);
-
-    const days = distanceInDay;
-
-    const injectSales = []
-    const injectTickets = []
-    const injectOperations = []
-    const dates = []
-
-    for (let i = 1; i <= 12; i++) {
-      endDate.setUTCHours((endDate.getUTCHours() + (days * 24 / 12)))
-
-      const releaseEndDate = new Date(endDate);
-      releaseEndDate.setMilliseconds(-1)
-      const releaseStartDate = new Date(startDate)
-
-
-      dates.push({
-        start: releaseStartDate.toISOString(),
-        end: releaseEndDate.toISOString()
-      })
-
-      injectOperations.push(
-        {
-          $size: {
-            $filter: {
-              input: '$operations',
-              as: 'item',
-              cond: {
-                $and: [
-                  { $gte: ['$$item.date', releaseStartDate] },
-                  { $lte: ['$$item.date', releaseEndDate] }
-                ]
-              }
-            }
-          }
-        }
-      )
-
-      injectSales.push(
-        {
-          $size: {
-            $filter: {
-              input: '$operations',
-              as: 'item',
-              cond: {
-                $and: [
-                  { $gte: ['$$item.date', releaseStartDate] },
-                  { $lte: ['$$item.date', releaseEndDate] },
-                  { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
-                ],
-              },
-            }
-          }
-        }
-      )
-      injectTickets.push(
-        {
-          $let: {
-            vars: {
-              values: {
-                $reduce: {
-                  input: {
-                    $filter: {
-                      input: '$operations',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $gte: ['$$item.date', releaseStartDate] },
-                          { $lte: ['$$item.date', releaseEndDate] },
-                          { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
-                        ],
-                      },
+                }, {
+                    $addFields: {
+                        percentAverageEarnings: {
+                            $cond: {
+                                if: {$eq: ['$averageEarnings', 0]},
+                                then: 0,
+                                else: {$subtract: [{$multiply: [{$divide: ['$previousAverageEarnings', '$averageEarnings']}, 100]}, 100]}
+                            }
+                        }
                     }
-                  },
-                  initialValue: [],
-                  in: { $concatArrays: ['$$value', '$$this.tickets'] },
                 }
-              }
-            },
+            ]);
+        return (await request.allowDiskUse(true).exec()).shift();
 
-            in: { $sum: '$$values.quantity' }
-          }
-        }
-      )
-
-      startDate.setUTCHours(startDate.getUTCHours() + ((days * 24) / 12))
     }
 
-    const request = await this.operationsSchema.aggregate([
-      {
-        $match: insulation
-      },
-      {
-        $group: {
-          _id: '$_id',
-          tickets: { $last: '$tickets' },
-          date: { $last: '$date' },
-          status: { $last: '$status' }
-        }
-      },
+    /**
+     *
+     * @param stage
+     * @param insulation
+     * @description статистика устройств
+     */
+    async graphicsDevices(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const request = await this.operationsSchema.aggregate([
+            {$match: insulation},
+            {$group: {_id: null, devices: {$push: {name: '$os.name', status: '$status'}}}},
+            {
+                $project: {
+                    _id: false,
+                    devices: true,
 
-      { $group: { _id: null, operations: { $push: '$$CURRENT' }, count: { $sum: 1 } } },
-      {
-        $project: {
-          _id: false,
-          operations: injectOperations,
-          tickets: injectTickets,
-          sales: injectSales, count: true,
-          dates
-        }
-      }
-    ]).exec()
+                    transactions: {
+                        phones: {
+                            $size: {
+                                $filter: {
+                                    input: '$devices',
+                                    as: 'item',
+                                    cond: {
+                                        $and: [
+                                            {$in: ['$$item.name', ['iOS', 'Android']]},
+                                            {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        ]
+                                    }
+                                }
+                            }
+                        },
 
-    return request.shift()
-  }
+                        desktops: {
+                            $size: {
+                                $filter: {
+                                    input: '$devices',
+                                    as: 'item',
+                                    cond: {
+                                        $and: [
+                                            {$in: ['$$item.name', ['OS X', 'Windows', 'Linux']]},
+                                            {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
 
-  async graphicsLocation(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const request = (await this.operationsSchema
-      .aggregate([
-        {
-          $match: {
-            ...insulation, status: 'WIDGET_PAYMENT',
-            'addressInfo.city': { $exists: true, $ne: null }
-          }
-        },
-        { $group: { _id: '$addressInfo.city', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 5 },
-        { $project: { _id: false, name: '$_id', count: true } },
-        { $group: { _id: null, labels: { $push: '$name' }, data: { $push: '$count' } } },
-        { $project: { _id: false } }
-      ])
-      .exec());
-    return request.shift()
-  }
+                    operations: {
+                        phones: {
+                            $size: {
+                                $filter: {
+                                    input: '$devices',
+                                    as: 'item',
+                                    cond: {
+                                        $and: [
+                                            {$in: ['$$item.name', ['iOS', 'Android']]},
+                                            {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        ]
+                                    }
+                                }
+                            }
+                        },
 
-  async graphicsSalesRanking(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const request = await this.operationsSchema.aggregate([
-      {
-        $match: {
-          'event.name': { $exists: true, $ne: null },
-          status: 'WIDGET_PAYMENT',
-          ...insulation
-        },
-      },
-      { $group: { _id: '$event.name', count: { $sum: 1 } }, },
-      { $sort: { count: -1 } },
-      { $limit: 10 },
-      {
-        $project: {
-          _id: false,
-          name: '$_id',
-          count: true,
-        },
-      },
+                        desktops: {
+                            $size: {
+                                $filter: {
+                                    input: '$devices',
+                                    as: 'item',
+                                    cond: {
+                                        $and: [
+                                            {$in: ['$$item.name', ['OS X', 'Windows', 'Linux']]},
+                                            {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    transactions: {
+                        phones: 1,
+                        desktops: 1,
+                        others: {
+                            $subtract: [{
+                                $size: {
+                                    $filter:
+                                        {
+                                            input: '$devices',
+                                            as: 'item',
+                                            cond: {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        }
+                                }
+                            },
+                                {$sum: ['$transactions.phones', '$transactions.desktops']}]
+                        }
+                    },
 
-      { $group: { _id: null, events: { $push: '$$CURRENT' } } },
-      { $project: { _id: false, total: { $sum: '$events.count' }, events: true } },
-      { $unwind: '$events' },
-      {
-        $group: {
-          _id: null,
-          events: {
-            $push: {
-              name: '$events.name',
-              sales: '$events.count',
-              percent: { $floor: { $multiply: [{ $divide: ['$events.count', '$total'] }, 100] } }
+                    operations: {
+                        phones: 1,
+                        desktops: 1,
+                        others: {
+                            $subtract: [{
+                                $size: {
+                                    $filter:
+                                        {
+                                            input: '$devices',
+                                            as: 'item',
+                                            cond: {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
+                                        }
+                                }
+                            },
+                                {$sum: ['$operations.phones', '$operations.desktops']}]
+                        }
+                    }
+                }
             }
-          }
+        ]).exec()
+
+        return request[0] || null;
+    }
+
+    async graphicsSales(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const {date} = insulation;
+
+        const distance = (Math.ceil(Math.abs(new Date(date['$lte']).getTime() -
+            new Date(date['$gte']).getTime()) / (1000 * 3600 * 24))) || 1;
+
+        if (distance == 1) {
+            date['$gte'].setUTCDate(date['$gte'].getUTCDate() + 1)
         }
-      },
-      { $project: { _id: false } }
-    ]).exec()
 
-    return request.shift();
-  }
+        const start = new Date(date['$gte']),
+            end = new Date(date['$gte']);
 
-  async graphicsNewBuyers(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const request = await this.operationsSchema.aggregate([
-      {
-        $match: {
-          source: insulation.source, status: 'WIDGET_PAYMENT',
-          'buyer.phone': { $exists: true, $ne: null }
+        const hours = (distance * 24) / 24;
+
+
+        const filterSales = [],
+            filterTickets = [],
+            filterOperations = [],
+            filterDates = [],
+            filterUsers = [];
+
+        for (let x = 0; x < 24; x++) {
+            end.setUTCHours(end.getUTCHours() + hours);
+            end.setUTCMilliseconds(end.getUTCMilliseconds() - 1);
+
+            filterDates.push([start.toISOString(), end.toISOString()]);
+            filterSales.push({
+                $size: {
+                    $filter: {
+                        input: '$operations',
+                        as: 'as',
+                        cond: {
+                            $and: [
+                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
+                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
+                                {$eq: ['$$as.status', 'WIDGET_PAYMENT']}
+                            ]
+                        }
+                    }
+                }
+            });
+            filterOperations.push({
+                $size: {
+                    $filter: {
+                        input: '$operations',
+                        as: 'as',
+                        cond: {
+                            $and: [
+                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
+                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
+                                {$ne: ['$$as.status', 'WIDGET_PAYMENT']}
+                            ]
+                        }
+                    }
+                }
+            });
+            filterTickets.push({
+                $let: {
+                    vars: {
+                        values: {
+                            $reduce: {
+                                input: {
+                                    $filter: {
+                                        input: '$operations',
+                                        as: 'as',
+                                        cond: {
+                                            $and: [
+                                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
+                                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
+                                                {$eq: ['$$as.status', 'WIDGET_PAYMENT']}
+                                            ]
+                                        }
+                                    }
+                                },
+                                initialValue: [],
+                                in: {$concatArrays: ['$$value', '$$this.tickets']}
+                            }
+                        }
+                    },
+
+                    in: {$sum: '$$values.quantity'}
+                }
+            });
+            filterUsers.push({
+                $let: {
+                    vars: {
+                        values: {
+                            $filter: {
+                                input: '$operations',
+                                as: 'as',
+                                cond: {
+                                    $and: [
+                                        {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
+                                        {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
+                                        {$eq: ['$$as.status', 'WIDGET_PAYMENT']},
+                                        {$ne: ['$$as.phone', null]}
+                                    ]
+                                }
+                            }
+
+                        }
+                    },
+                    in: {$size: {$setUnion: ['$$values.phone']}}
+                }
+            });
+
+            start.setUTCHours(start.getUTCHours() + hours);
         }
-      },
-      { $group: { _id: '$buyer.phone', date: { $first: '$date' } } },
-      { $group: { _id: null, buyers: { $push: '$$CURRENT' } } },
-      {
-        $project: {
-          _id: false,
-          buyers: {
-            $size: '$buyers'
-          },
 
-          previousBuyers: {
-            $size: {
-              $filter: {
-                input: '$buyers',
-                as: 'item',
-                cond: {
-                  $and: [
-                    { $gte: ['$$item.date', insulation['date']['$gte']] },
-                    { $lte: ['$$item.date', insulation['date']['$lte']] }
-                  ],
+
+        return await this.operationsSchema.aggregate()
+            .match(insulation)
+            .group({
+                _id: '$_id', date: {$last: '$date'}, phone: {$last: '$buyer.phone'},
+                status: {$last: '$status'}, tickets: {$last: '$tickets'}
+            })
+            .group({_id: null, operations: {$push: '$$CURRENT'}})
+            .project({_id: false, filterOperations, filterSales, filterTickets, filterUsers, filterDates})
+            .exec()
+            .then(resolve => {
+                resolve = resolve.shift() || {};
+
+                return {
+                    error: null,
+                    then: {
+                        graphics: {
+                            sales: resolve['filterSales'] || [],
+                            operations: resolve['filterOperations'] || [],
+                            tickets: resolve['filterTickets'] || [],
+                            users: resolve['filterUsers'] || []
+                        },
+
+                        meta: {
+                            dates: resolve['filterDates'] || []
+                        },
+
+                        api: 'v2'
+                    }
+                }
+            }).catch(resolve => {
+                console.error(resolve);
+                return {
+                    error: {
+                        message: 'an error occurred while generating the report'
+                    },
+                    then: null
+                }
+            });
+    }
+
+    async graphicsLocation(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const request = (await this.operationsSchema
+            .aggregate([
+                {
+                    $match: {
+                        ...insulation, status: 'WIDGET_PAYMENT',
+                        'addressInfo.city': {$exists: true, $ne: null}
+                    }
                 },
-              }
+                {$group: {_id: '$addressInfo.city', count: {$sum: 1}}},
+                {$sort: {count: -1}},
+                {$limit: 5},
+                {$project: {_id: false, name: '$_id', count: true}},
+                {$group: {_id: null, labels: {$push: '$name'}, data: {$push: '$count'}}},
+                {$project: {_id: false}}
+            ])
+            .exec());
+        return request.shift()
+    }
+
+    async graphicsSalesRanking(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const request = await this.operationsSchema.aggregate([
+            {
+                $match: {
+                    'event.name': {$exists: true, $ne: null},
+                    status: 'WIDGET_PAYMENT',
+                    ...insulation
+                },
+            },
+            {$group: {_id: '$event.name', count: {$sum: 1}},},
+            {$sort: {count: -1}},
+            {$limit: 10},
+            {
+                $project: {
+                    _id: false,
+                    name: '$_id',
+                    count: true,
+                },
+            },
+
+            {$group: {_id: null, events: {$push: '$$CURRENT'}}},
+            {$project: {_id: false, total: {$sum: '$events.count'}, events: true}},
+            {$unwind: '$events'},
+            {
+                $group: {
+                    _id: null,
+                    events: {
+                        $push: {
+                            name: '$events.name',
+                            sales: '$events.count',
+                            percent: {$floor: {$multiply: [{$divide: ['$events.count', '$total']}, 100]}}
+                        }
+                    }
+                }
+            },
+            {$project: {_id: false}}
+        ]).exec()
+
+        return request.shift();
+    }
+
+    async graphicsNewBuyers(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const request = await this.operationsSchema.aggregate([
+            {
+                $match: {
+                    source: insulation.source, status: 'WIDGET_PAYMENT',
+                    'buyer.phone': {$exists: true, $ne: null}
+                }
+            },
+            {$group: {_id: '$buyer.phone', date: {$first: '$date'}}},
+            {$group: {_id: null, buyers: {$push: '$$CURRENT'}}},
+            {
+                $project: {
+                    _id: false,
+                    buyers: {
+                        $size: '$buyers'
+                    },
+
+                    previousBuyers: {
+                        $size: {
+                            $filter: {
+                                input: '$buyers',
+                                as: 'item',
+                                cond: {
+                                    $and: [
+                                        {$gte: ['$$item.date', insulation['date']['$gte']]},
+                                        {$lte: ['$$item.date', insulation['date']['$lte']]}
+                                    ],
+                                },
+                            }
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-    ]).exec();
+        ]).exec();
 
-    return request.shift()
-  }
+        return request.shift()
+    }
 
-  async graphicsSalesTicket(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-    const request = this.operationsSchema.aggregate([
-      {
-        $match: {
-          ...insulation,
-          status: 'WIDGET_PAYMENT',
-          tickets: { $exists: true, $ne: null },
-          'tickets.quantity': { $gte: 1 }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          tickets: {
-            $push: {
-              quantity: { $sum: '$$CURRENT.tickets.quantity' }
+    async graphicsSalesTicket(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
+        const request = this.operationsSchema.aggregate([
+            {
+                $match: {
+                    ...insulation,
+                    status: 'WIDGET_PAYMENT',
+                    tickets: {$exists: true, $ne: null},
+                    'tickets.quantity': {$gte: 1}
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    tickets: {
+                        $push: {
+                            quantity: {$sum: '$$CURRENT.tickets.quantity'}
+                        }
+                    }
+                }
+            },
+            {$project: {_id: false, tickets: '$tickets.quantity'}},
+            {$unwind: '$tickets'},
+            {$group: {_id: '$$CURRENT.tickets', count: {$sum: 1}}},
+            {$project: {tickets: '$_id', count: true}},
+            {$group: {_id: null, total: {$push: '$$CURRENT'}}},
+            {
+                $project: {
+                    _id: false,
+                    data: [
+                        /** one ticket */
+                        {
+                            $let: {
+                                vars: {
+                                    ticket: {
+                                        $filter: {
+                                            input: '$total',
+                                            as: 'item',
+                                            cond: {
+                                                $and: [
+                                                    {$eq: ['$$item.tickets', 1]},
+                                                ],
+                                            },
+                                        }
+                                    }
+                                },
+                                in: {$sum: '$$ticket.count'}
+                            }
+                        },
+
+                        /** two ticket */
+                        {
+                            $let: {
+                                vars: {
+                                    ticket: {
+                                        $filter: {
+                                            input: '$total',
+                                            as: 'item',
+                                            cond: {
+                                                $and: [
+                                                    {$eq: ['$$item.tickets', 2]},
+                                                ],
+                                            },
+                                        }
+                                    }
+                                },
+                                in: {$sum: '$$ticket.count'}
+                            }
+                        },
+
+                        /** three ticket */
+                        {
+                            $let: {
+                                vars: {
+                                    ticket: {
+                                        $filter: {
+                                            input: '$total',
+                                            as: 'item',
+                                            cond: {
+                                                $and: [
+                                                    {$eq: ['$$item.tickets', 3]},
+                                                ],
+                                            },
+                                        }
+                                    }
+                                },
+                                in: {$sum: '$$ticket.count'}
+                            }
+                        },
+
+                        /**
+                         * foo ticket
+                         */
+                        {
+                            $let: {
+                                vars: {
+                                    ticket: {
+                                        $filter: {
+                                            input: '$total',
+                                            as: 'item',
+                                            cond: {
+                                                $and: [
+                                                    {$eq: ['$$item.tickets', 4]},
+                                                ],
+                                            },
+                                        }
+                                    }
+                                },
+                                in: {$sum: '$$ticket.count'}
+                            }
+                        },
+
+                        /**
+                         * more
+                         */
+                        {
+                            $let: {
+                                vars: {
+                                    ticket: {
+                                        $filter: {
+                                            input: '$total',
+                                            as: 'item',
+                                            cond: {
+                                                $and: [
+                                                    {$gte: ['$$item.tickets', 5]},
+                                                ],
+                                            },
+                                        }
+                                    }
+                                },
+                                in: {$sum: '$$ticket.count'}
+                            }
+                        },
+                    ]
+                }
             }
-          }
-        }
-      },
-      { $project: { _id: false, tickets: '$tickets.quantity' } },
-      { $unwind: '$tickets' },
-      { $group: { _id: '$$CURRENT.tickets', count: { $sum: 1 } } },
-      { $project: { tickets: '$_id', count: true } },
-      { $group: { _id: null, total: { $push: '$$CURRENT' } } },
-      {
-        $project: {
-          _id: false,
-          data: [
-            /** one ticket */
-            {
-              $let: {
-                vars: {
-                  ticket: {
-                    $filter: {
-                      input: '$total',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $eq: ['$$item.tickets', 1] },
-                        ],
-                      },
-                    }
-                  }
-                },
-                in: { $sum: '$$ticket.count' }
-              }
-            },
-
-            /** two ticket */
-            {
-              $let: {
-                vars: {
-                  ticket: {
-                    $filter: {
-                      input: '$total',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $eq: ['$$item.tickets', 2] },
-                        ],
-                      },
-                    }
-                  }
-                },
-                in: { $sum: '$$ticket.count' }
-              }
-            },
-
-            /** three ticket */
-            {
-              $let: {
-                vars: {
-                  ticket: {
-                    $filter: {
-                      input: '$total',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $eq: ['$$item.tickets', 3] },
-                        ],
-                      },
-                    }
-                  }
-                },
-                in: { $sum: '$$ticket.count' }
-              }
-            },
-
-            /**
-             * foo ticket
-             */
-            {
-              $let: {
-                vars: {
-                  ticket: {
-                    $filter: {
-                      input: '$total',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $eq: ['$$item.tickets', 4] },
-                        ],
-                      },
-                    }
-                  }
-                },
-                in: { $sum: '$$ticket.count' }
-              }
-            },
-
-            /**
-             * more
-             */
-            {
-              $let: {
-                vars: {
-                  ticket: {
-                    $filter: {
-                      input: '$total',
-                      as: 'item',
-                      cond: {
-                        $and: [
-                          { $gte: ['$$item.tickets', 5] },
-                        ],
-                      },
-                    }
-                  }
-                },
-                in: { $sum: '$$ticket.count' }
-              }
-            },
-          ]
-        }
-      }
 
 
-    ]);
-    return (await request.exec()).shift();
-  }
+        ]);
+        return (await request.exec()).shift();
+    }
 }

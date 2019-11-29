@@ -16,7 +16,7 @@ async function bootstrap(): Promise<never> {
       skipMissingProperties: true,
     }),
   );
-  await app.listen(3303, address);
+  await app.listen(3303);
 
   return;
 }

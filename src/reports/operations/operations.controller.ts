@@ -27,10 +27,13 @@ export class OperationsController {
 
     @Post('details')
     async details(@Body() stage: OperationDetailsDataObject, @SourceBrige() insulation): Promise<object> {
-        return await this.operationService.operationDetails(stage, insulation).catch(resolve => {
-            console.error(resolve)
-
+        return await this.operationService.details(stage, insulation).catch(resolve => {
             throw new BadRequestException()
         })
+    }
+
+    @Post('details.sheet')
+    async detailsSheet(@Body() stage: OperationDetailsDataObject, @SourceBrige() bridge) {
+        return await this.operationService.sheetDetails(stage, bridge)
     }
 }

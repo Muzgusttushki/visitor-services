@@ -8,9 +8,12 @@ export const OperationSchema = new mongoose.Schema({
   brokenTickets: Array<object>(),
   tickets: Array<object>(),
   browser: Object,
+  os: Object,
   date: Date,
   source: String,
   status: String,
   event: Object,
   utm: Object,
+  buyer: Object,
+  url: String,
 });
