@@ -20,7 +20,7 @@ const url = format(
   'db1'
 );
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 const options = {
   useNewUrlParser: true,

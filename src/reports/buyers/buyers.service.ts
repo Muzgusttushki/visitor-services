@@ -29,6 +29,87 @@ export class BuyersService {
     ) {
     }
 
+    async userSourceAnalyse(phone: string) {
+        const request = await this.operationSchema
+            .aggregate()
+            .match({ 'buyer.phone': { $eq: phone } })
+            .group({
+                _id: null,
+                yandex: { $push: '$analytics.yandex' },
+                google: { $push: '$analytics.google' },
+                facebook: { $push: '$analytics.facebook' },
+                vis: { $push: '$analytics.vis' },
+            })
+            .exec()
+            .then(async resolve => {
+                if (resolve.length) {
+                    const { yandex, google, facebook, vis } = resolve[0];
+                    const $or = [];
+
+                    if (yandex)
+                        $or.push({
+                            'analytics.yandex': {
+                                $in: yandex
+                            }
+                        });
+
+                    if (google)
+                        $or.push({
+                            'analytics.google': {
+                                $in: google
+                            }
+                        });
+
+                    if (facebook)
+                        $or.push({
+                            'analytics.facebook': {
+                                $in: facebook
+                            }
+                        });
+
+                    if (vis)
+                        $or.push({
+                            'analytics.vis': {
+                                $in: vis
+                            }
+                        });
+
+                    const request = await this.operationSchema.aggregate()
+                        .match({ $or, 'utm.source': { $exists: true, $ne: null } })
+                        .group({
+                            _id: {
+                                source: {
+                                    $let: {
+                                        vars: {
+                                            regex: {
+                                                $regexFind: {
+                                                    input: '$utm.source',
+                                                    regex: /^(?:https?:)?(?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/im
+                                                }
+                                            }
+                                        },
+
+                                        in: {$arrayElemAt: ['$$regex.captures', 0]}
+                                    }
+                                },
+                                utm_source: '$utm.tags.utm_source'
+                            },
+
+                            quantity: { $sum: 1 }
+                        })
+                        .exec()
+                        .then(resolve => {
+                            console.log(JSON.stringify(resolve));
+                        })
+
+                    return request;
+                }
+            });
+
+
+        return request;
+    }
+
     async userActivity(phone: string) {
         return await this.operationSchema
             .aggregate()
@@ -38,11 +119,12 @@ export class BuyersService {
                 yandex: { $push: '$analytics.yandex' },
                 google: { $push: '$analytics.google' },
                 facebook: { $push: '$analytics.facebook' },
+                vis: { $push: '$analytics.vis' }
             })
             .exec()
             .then(async resolve => {
                 if (resolve.length) {
-                    const { yandex, google, facebook } = resolve[0];
+                    const { yandex, google, facebook, vis } = resolve[0];
 
                     const $or = [];
 
@@ -51,21 +133,28 @@ export class BuyersService {
                             'analytics.yandex': {
                                 $in: yandex
                             }
-                        })
+                        });
 
                     if (google)
                         $or.push({
                             'analytics.google': {
                                 $in: google
                             }
-                        })
+                        });
 
                     if (facebook)
                         $or.push({
                             'analytics.facebook': {
                                 $in: facebook
                             }
-                        })
+                        });
+
+                    if (vis)
+                        $or.push({
+                            'analytics.vis': {
+                                $in: vis
+                            }
+                        });
 
                     const __sheetCount = await this.sheetSchema.countDocuments({
                         $or
@@ -89,7 +178,7 @@ export class BuyersService {
                         then: {
                             sheetActions: __sheetCount,
                             widgetActions: __widgetCount,
-                            totalActions: __widgetCount + 
+                            totalActions: __widgetCount +
                                 __sheetCount || 0
                         }
                     }
@@ -902,7 +991,8 @@ export class BuyersService {
                     _id: null,
                     yandexCookies: { $push: '$analytics.yandex' },
                     googleCookies: { $push: '$analytics.google' },
-                    facebookCookies: { $push: '$analytics.facebook' }
+                    facebookCookies: { $push: '$analytics.facebook' },
+                    visCookies: { $push: '$analytics.vis' }
                 }
             }
         ]).exec()
@@ -921,6 +1011,10 @@ export class BuyersService {
 
                 if (resolve.facebookCookies) {
                     match.push({ 'analytics.facebook': { $in: resolve.facebookCookies } })
+                }
+
+                if (resolve.visCookies) {
+                    match.push({ 'analytics.vis': { $in: resolve.visCookies } })
                 }
 
                 return await this.operationSchema.aggregate([])
@@ -1029,6 +1123,7 @@ export class BuyersService {
                             yandex: resolve['analytics'] ? resolve['analytics']['yandex'] || null : null,
                             facebook: resolve['analytics'] ? resolve['analytics']['facebook'] || null : null,
                             google: resolve['analytics'] ? resolve['analytics']['google'] || null : null,
+                            vis: resolve['analytics'] ? resolve['analytics']['vis'] || null : null,
                         }
                     }
                 }

@@ -54,4 +54,9 @@ export class BuyersController {
   async userActivity(@Param('phone') phone: string) {
     return await this.buyersService.userActivity(phone);
   }
+
+  @Get('buyers/userSourceAnalyse/:phone')
+  async userSourceAnalyse(@Param("phone") phone: string) {
+    return await this.buyersService.userSourceAnalyse(phone);
+  }
 }
