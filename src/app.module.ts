@@ -20,7 +20,8 @@ const url = format(
   'db1'
 );
 
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
+const NEW_VERSION = true;
 
 const options = {
   useNewUrlParser: true,
@@ -33,7 +34,8 @@ const options = {
 } as MongooseModuleOptions;
 
 const MONGO_URL =
-  'mongodb://localhost:27017/db1';
+  'mongodb://localhost:27017/db1'
+
 const MONGO_OPTIONS = {
   useNewUrlParser: true,
   useFindAndModify: false,
@@ -41,9 +43,11 @@ const MONGO_OPTIONS = {
   useCreateIndex: true
 };
 
+const MONGO_URL_NEW = 'mongodb://84.201.161.14:27017/db1'
+
 @Module({
-  imports: [MongooseModule.forRoot(DEBUG_MODE ? MONGO_URL : url ,
-      DEBUG_MODE ? MONGO_OPTIONS : options),
+  imports: [MongooseModule.forRoot(DEBUG_MODE ? MONGO_URL : NEW_VERSION ? MONGO_URL_NEW : url,
+    DEBUG_MODE ? MONGO_OPTIONS : NEW_VERSION ? MONGO_OPTIONS : options),
     SignUpModule,
     ManagementModule,
     BuyersModule,

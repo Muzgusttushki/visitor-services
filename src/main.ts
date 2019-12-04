@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
-const address = '192.168.0.6'
 /**
  * @description bootstrap initialization
  * @ignore

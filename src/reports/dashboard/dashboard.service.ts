@@ -364,7 +364,7 @@ export class DashboardService {
                             $cond: {
                                 if: {$eq: ['$averageEarnings', 0]},
                                 then: 0,
-                                else: {$subtract: [{$multiply: [{$divide: ['$previousAverageEarnings', '$averageEarnings']}, 100]}, 100]}
+                                else: {$multiply: [{$divide: ['$previousAverageEarnings', '$averageEarnings']}, 100]}
                             }
                         }
                     }

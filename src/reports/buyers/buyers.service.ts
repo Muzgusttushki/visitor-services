@@ -16,6 +16,7 @@ import { GetStepsUserDTO } from "./DTO/GetStepsUser.DTO";
 import { GetStepDetailDTO } from "./DTO/GetStepDetail.DTO";
 import * as mongoose from "mongoose";
 import { SheetSchemaDTO } from "../operations/schemas/SheetSchemaDTO";
+import { exec } from 'child_process';
 
 @Injectable()
 export class BuyersService {
@@ -78,28 +79,60 @@ export class BuyersService {
                         .match({ $or, 'utm.source': { $exists: true, $ne: null } })
                         .group({
                             _id: {
-                                source: {
-                                    $let: {
-                                        vars: {
-                                            regex: {
-                                                $regexFind: {
-                                                    input: '$utm.source',
-                                                    regex: /^(?:https?:)?(?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/im
-                                                }
+                                target: {
+                                    $concat: [
+                                        {
+                                            $let: {
+                                                vars: {
+                                                    regex: {
+                                                        $regexFind: {
+                                                            input: '$utm.source',
+                                                            regex: /^(?:https?:)?(?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/im
+                                                        }
+                                                    }
+                                                },
+                                                in: { $arrayElemAt: ['$$regex.captures', 0] }
                                             }
                                         },
-
-                                        in: {$arrayElemAt: ['$$regex.captures', 0]}
-                                    }
+                                        '$utm.tags.utm_source'
+                                    ]
                                 },
-                                utm_source: '$utm.tags.utm_source'
+
+                                method: '$utm.tags.utm_medium'
                             },
 
                             quantity: { $sum: 1 }
                         })
                         .exec()
                         .then(resolve => {
-                            console.log(JSON.stringify(resolve));
+                            const state = resolve
+                                .map(function (resolve) {
+                                    const { _id, quantity } = resolve;
+                                    return {
+                                        quantity,
+                                        type: _id.target ?
+
+                                            /ad|yandex|google|vk|ig||inst|in|IG|fb/gm.exec(_id.target) ? 'advertisement'
+                                                : /email|sendpule|pulse/gm.exec(_id.target) ? 'email'
+                                                    : /vk.com|facebook.com|instagram.com/gm.exec(_id.target) ? 'social'
+                                                        : /whats/gm.exec(_id.target) ? 'messenger'
+                                                            : /mt|st/gm.exec(_id.target) ? 'advertising'
+                                                                : 'N/A'
+                                            : 'direct',
+
+                                        engine: /google/gm.exec(_id.target) ? 'google'
+                                            : /ya/gm.exec(_id.target) ? 'yandex'
+                                                : /fb|facebook/gm.exec(_id.target) ? 'facebook'
+                                                    : /vk/gm.exec(_id.target) ? 'vkontakte'
+                                                        : /ig|IG/gm.exec(_id.target) ? 'instagram'
+                                                            : /mt|st/gm.exec(_id.target) ? 'mytaget'
+                                                                : /whats/gm.exec(_id.target) ? 'whatsup' : null,
+
+                                        method: _id.method
+                                    }
+                                });
+
+                            return state;
                         })
 
                     return request;
