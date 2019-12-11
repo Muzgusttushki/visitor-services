@@ -23,8 +23,10 @@ const SheetSchema = new mongoose.Schema({
     analytics: {
         google: String,
         facebook: String,
-        yandex: String
-    }
+        yandex: String,
+        vis: String,
+    },
+    isSheet: Boolean
 });
 
 export  {SheetSchema}

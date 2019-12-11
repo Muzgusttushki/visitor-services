@@ -24,5 +24,7 @@ export interface SheetSchemaDTO extends mongoose.Document {
         google: string,
         facebook: string,
         yandex: string
-    }
+        vis: string,
+    },
+    isSheet: boolean
 }

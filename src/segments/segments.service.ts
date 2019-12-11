@@ -247,7 +247,7 @@ export class SegmentsService {
                         }
 
                         case 'buyers->average:bill(33)': {
-                            console.log(resolve.earnings / resolve.tickets, paymentBill33)
+                           // console.log(resolve.earnings / resolve.tickets, paymentBill33)
                             return resolve.earnings / resolve.tickets <= paymentBill33
                         }
 

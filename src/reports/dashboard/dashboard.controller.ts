@@ -4,6 +4,7 @@ import { DashboardObject } from '../../transferDataObject/dashboard/dashboardObj
 import { AccountObject } from '../../transferDataObject/account/AccountObject';
 import { DashboardService } from './dashboard.service';
 import { SourceBrige } from '../../decorators/access/source-brige.decorator';
+import { IUserRequest } from 'src/services/express/IUserRequest';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('dashboard')
@@ -11,9 +12,9 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) { }
   @Post()
   async getDashboard(@Body() stage: DashboardObject,
-    @Request() req: Request): Promise<object> {
+    @Request() req: IUserRequest): Promise<object> {
 
-    const session = req['user'] as AccountObject;
+    const session = req.user as AccountObject;
     return await this.dashboardService.getDashboardStats(stage, session);
   }
 

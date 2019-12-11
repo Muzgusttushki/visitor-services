@@ -9,19 +9,21 @@ import { readFileSync } from 'fs';
 import { format } from 'util';
 import { SegmentsModule } from './segments/segments.module';
 import { TrashModule } from './trash/trash.module';
+import { RegionsModule } from './services/regions/regions.module';
+
+
 const url = format(
   'mongodb://%s:%s@%s/db1?replicaSet=%s&authSource=%s&ssl=true',
-  'collector',
-  '180477QwE',
+  'vis',
+  '6dr0x0u4ijBT&o^#saY@W5Bm',
   [
-    'rc1b-obsi4apyngb4yppx.mdb.yandexcloud.net:27018'
+    'rc1c-fainpcouiaifsp97.mdb.yandexcloud.net:27018'
   ].join(','),
   'rs01',
   'db1'
 );
 
-const DEBUG_MODE = false;
-const NEW_VERSION = true;
+console.log(url);
 
 const options = {
   useNewUrlParser: true,
@@ -31,26 +33,13 @@ const options = {
   useUnifiedTopology: true,
   useFindAndModify: false,
   useCreateIndex: true,
-} as MongooseModuleOptions;
-
-const MONGO_URL =
-  'mongodb://localhost:27017/db1'
-
-const MONGO_OPTIONS = {
-  useNewUrlParser: true,
-  useFindAndModify: false,
-  useUnifiedTopology: true,
-  useCreateIndex: true
 };
 
-const MONGO_URL_NEW = 'mongodb://84.201.161.14:27017/db1'
-
 @Module({
-  imports: [MongooseModule.forRoot(DEBUG_MODE ? MONGO_URL : NEW_VERSION ? MONGO_URL_NEW : url,
-    DEBUG_MODE ? MONGO_OPTIONS : NEW_VERSION ? MONGO_OPTIONS : options),
+  imports: [MongooseModule.forRoot(url, options),
     SignUpModule,
     ManagementModule,
     BuyersModule,
-    DashboardModule, OperationsModule, SegmentsModule, TrashModule],
+    DashboardModule, OperationsModule, SegmentsModule, TrashModule, RegionsModule],
 })
 export class AppModule { }

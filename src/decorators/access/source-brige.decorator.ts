@@ -1,9 +1,10 @@
 import { Request, createParamDecorator, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { AccountObject } from '../../transferDataObject/account/AccountObject';
 import { DateTimeRange } from '../../transferDataObject/types/DateTimeRange';
+import { IUserRequest } from 'src/services/express/IUserRequest';
 
-export const SourceBrige = createParamDecorator(async (_, req: Request) => {
-    const user = req['user'] as AccountObject;
+export const SourceBrige = createParamDecorator(async (_, req: IUserRequest) => {
+    const user = req.user as AccountObject;
     if (!user) { throw new ForbiddenException() }
 
     const sources = req.body['sources'] as string[],

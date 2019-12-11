@@ -1,4 +1,4 @@
-import {Body, Controller, Post, UseGuards, BadRequestException, Req, Get, Param} from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, BadRequestException, Req, Get, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BuyersService } from './buyers.service';
 import { SourceBrige } from '../../decorators/access/source-brige.decorator';
@@ -6,9 +6,10 @@ import { PaymentsUsers } from './dataTransfers/users.dto';
 import { PaymentsFiltersDataObject } from './dataTransfers/PaymentsFiltersDataObject';
 import { DetailsUserDataObject } from './dataTransfers/DetailsUserDataObject';
 import { OperationDetailsDataObject } from '../operations/dataTransfers/operationDetailsDataObject';
-import {Request} from 'express'
-import {GetStepsUserDTO} from "./DTO/GetStepsUser.DTO";
-import {GetStepDetailDTO} from "./DTO/GetStepDetail.DTO";
+import { Request } from 'express'
+import { GetStepsUserDTO } from "./DTO/GetStepsUser.DTO";
+import { GetStepDetailDTO } from "./DTO/GetStepDetail.DTO";
+import { IUserRequest } from 'src/services/express/IUserRequest';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('reports')
@@ -40,9 +41,9 @@ export class BuyersController {
   }
 
   @Post('getDetailsUserInformation.steps')
-  async detailsUserInformationReadMap(@Body() details: GetStepsUserDTO, @Req() request: Request) {
-    const user = request['user'];
-    return await this.buyersService.detailsUserInformationRoadMap(details, user.sources)
+  async detailsUserInformationReadMap(@Body() details: GetStepsUserDTO, @Req() request: IUserRequest) {
+    const user = request.user;
+    return await this.buyersService.detailsUserInformationRoadMap(details, user.sources as string[])
   }
 
   @Post('getDetailsUserInformation.info')

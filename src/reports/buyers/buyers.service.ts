@@ -3,6 +3,7 @@ import {
     ForbiddenException,
     Injectable,
 } from '@nestjs/common';
+
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Schema } from 'mongoose';
 import { OperationObject } from '../../transferDataObject/buyers/OperationObject';
@@ -189,8 +190,9 @@ export class BuyersService {
                             }
                         });
 
-                    const __sheetCount = await this.sheetSchema.countDocuments({
-                        $or
+                    const __sheetCount = await this.operationSchema.countDocuments({
+                        $or,
+                        isSheet: true
                     })
                         .exec()
                         .catch(error => {
@@ -199,7 +201,8 @@ export class BuyersService {
                         })
 
                     const __widgetCount = await this.operationSchema.countDocuments({
-                        $or
+                        $or,
+                        isSheet: { $ne: true }
                     }).exec()
                         .catch(error => {
                             console.error(error);
@@ -977,6 +980,30 @@ export class BuyersService {
             return resolve.shift()
         });
 
+        request = this.operationSchema.aggregate();
+
+        request.match({
+            source: insulation['source'],
+            'analytics.google': { $ne: null, $exists: true },
+            $or: [{ 'buyer.phone': aboutUser.phone },
+            { 'analytics.google': { $in: aboutUser.analytics } }],
+            browser: { $ne: null, $exists: true },
+            os: { $ne: null, $exists: true }
+        })
+            .sort({ date: -1 })
+            .limit(10)
+            .group({
+                _id: null,
+                list: {
+                    $push:
+                        { browser: '$browser.name', os: '$os.name' }
+                }
+            })
+
+        const devicesList = await request.exec().then(resolve => {
+            return resolve.shift();
+        })
+
 
         request = this.segmentSchema.aggregate();
         request.match({
@@ -991,7 +1018,8 @@ export class BuyersService {
             details,
             activity,
             devices,
-            segments
+            segments,
+            devicesList
         }
     }
 
@@ -1056,41 +1084,8 @@ export class BuyersService {
                         _id: null,
                         operations: { $push: { _id: '$$CURRENT._id', date: '$$CURRENT.date', status: '$$CURRENT.status' } }
                     })
-                    .lookup({
-                        from: 'sheets',
-                        pipeline: [
-                            {
-                                $match:
-                                {
-                                    $expr:
-                                    {
-                                        $and: [
-                                            { $in: ['$source', sources] },
-                                            { $gte: ['$date', 1] },
-                                            {
-                                                $or: match.map(resolve => {
-                                                    const obj = Object.keys(resolve).shift();
-                                                    return {
-                                                        $in: [`$${obj}`, resolve[obj]['$in']]
-                                                    }
-                                                })
-                                            }
-                                        ]
-                                    }
-                                }
-                            },
-                            {
-                                $project: {
-                                    _id: true,
-                                    date: true,
-                                    status: 'VISIT'
-                                }
-                            }
-                        ],
-                        as: 'visits'
-                    })
                     .project({
-                        totals: { $concatArrays: ['$visits', '$operations'] }
+                        totals: '$operations'
                     })
                     .addFields({ length: { $size: '$totals' } })
                     .unwind('totals')
@@ -1129,7 +1124,7 @@ export class BuyersService {
             .exec()
             .then(async resolve => {
                 if (!resolve) {
-                    return await this.sheetSchema.findById(new mongoose.Types.ObjectId(details.address))
+                    return await this.operationSchema.findById(new mongoose.Types.ObjectId(details.address))
                         .exec();
                 }
 
