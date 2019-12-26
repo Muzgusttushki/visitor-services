@@ -17,10 +17,12 @@ import { GetStepsUserDTO } from "./DTO/GetStepsUser.DTO";
 import { GetStepDetailDTO } from "./DTO/GetStepDetail.DTO";
 import * as mongoose from "mongoose";
 import { SheetSchemaDTO } from "../operations/schemas/SheetSchemaDTO";
-import { exec } from 'child_process';
+import { ClientsModule, ClientProxyFactory, Transport, ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class BuyersService {
+    private readonly _paymentsMircoservice: ClientProxy;
+
     constructor(
         @InjectModel('buyers')
         private readonly operationSchema: Model<OperationObject>,
@@ -29,6 +31,11 @@ export class BuyersService {
         @InjectModel('sheets')
         private readonly sheetSchema: Model<SheetSchemaDTO>
     ) {
+
+    }
+
+    async filters() {
+
     }
 
     async userSourceAnalyse(phone: string) {

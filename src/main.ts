@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import * as comporession from 'compression';
 
 /**
  * @description bootstrap initialization
@@ -13,8 +14,11 @@ async function bootstrap(): Promise<never> {
   app.useGlobalPipes(
     new ValidationPipe({
       skipMissingProperties: true,
+      transform: true
     }),
   );
+
+  app.use(comporession());
   await app.listen(3303);
 
   return;

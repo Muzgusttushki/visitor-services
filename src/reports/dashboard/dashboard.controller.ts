@@ -18,11 +18,12 @@ export class DashboardController {
     return await this.dashboardService.getDashboardStats(stage, session);
   }
 
+  /*
   @Post('graphics/sales')
   async graphicsSales(@Body() stage: DashboardObject, @SourceBrige() insulation): Promise<object> {
     return await this.dashboardService.graphicsSales(stage,
       insulation)
-  }
+  }*/
 
   @Post('graphics/devices')
   async graphicsDevices(@Body() stage: DashboardObject, @SourceBrige() insulation): Promise<object> {

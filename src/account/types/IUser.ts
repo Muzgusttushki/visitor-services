@@ -7,5 +7,6 @@ export interface IUser {
     company_name: String,
     pin: Number,
     role: Number,
-    eq: String
+    eq: String,
+    access: string[]
 }

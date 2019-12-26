@@ -1,10 +1,10 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
-import {InjectModel} from '@nestjs/mongoose';
-import {OperationObject} from '../transferDataObject/buyers/OperationObject';
-import {Model} from 'mongoose';
-import {ObjectId} from 'bson';
-import {Segments, SegmentCreate, SegmentDetailUsers} from './segment.schema';
-import {SegmentExecuteDTO} from "./DTO/SegmentExecuteDTO";
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { OperationObject } from '../transferDataObject/buyers/OperationObject';
+import { Model } from 'mongoose';
+import { ObjectId } from 'bson';
+import { Segments, SegmentCreate, SegmentDetailUsers } from './segment.schema';
+import { SegmentExecuteDTO } from "./DTO/SegmentExecuteDTO";
 
 @Injectable()
 export class SegmentsService {
@@ -19,7 +19,7 @@ export class SegmentsService {
     }
 
     async screen() {
-        this.segmentSchema.find({enable: true, automation: true, updates: false}, function (err, segments) {
+        this.segmentSchema.find({ enable: true, automation: true, updates: false }, function (err, segments) {
             if (err) return console.error(err);
             for (let segmentAddress in segments) {
                 const segment = segments[segmentAddress] as Segments;
@@ -28,7 +28,7 @@ export class SegmentsService {
                     continue;
 
                 this.segmentSchema.findByIdAndUpdate(new ObjectId(segment._id),
-                    {enable: false, updates: true, last: new Date()}, function (err) {
+                    { enable: false, updates: true, last: new Date() }, function (err) {
                         if (err) return console.log(err);
                         this.buildSegment(segment)
                     }.bind(this))
@@ -39,12 +39,12 @@ export class SegmentsService {
     async users(details: SegmentDetailUsers, userId: ObjectId): Promise<object> {
         return await this.segmentSchema
             .aggregate()
-            .match({_id: new ObjectId(details.segment), access: {$elemMatch: {$eq: userId}}})
-            .group({_id: null, buyers: {$first: '$then.buyers'}})
+            .match({ _id: new ObjectId(details.segment), access: { $elemMatch: { $eq: userId } } })
+            .group({ _id: null, buyers: { $first: '$then.buyers' } })
             .unwind('buyers')
-            .sort({'buyers.lastActivity': -1})
-            .group({_id: null, buyers: {$push: '$buyers'}, length: {$sum: 1}})
-            .project({buyers: {$slice: ['$buyers', details.offset * 10, 10]}, length: true})
+            .sort({ 'buyers.lastActivity': -1 })
+            .group({ _id: null, buyers: { $push: '$buyers' }, length: { $sum: 1 } })
+            .project({ buyers: { $slice: ['$buyers', details.offset * 10, 10] }, length: true })
             .exec()
             .then(resolve => {
                 if (resolve.length) {
@@ -78,7 +78,7 @@ export class SegmentsService {
     async get(segmentId: ObjectId, userId: ObjectId): Promise<object> {
         return await this.segmentSchema.findOne({
             _id: segmentId,
-            access: {$elemMatch: {$eq: userId}},
+            access: { $elemMatch: { $eq: userId } },
             updates: false,
             enable: true
         }, {
@@ -126,24 +126,24 @@ export class SegmentsService {
         request
             .match({
                 status: 'WIDGET_PAYMENT',
-                source: {$in: segment.sources || []},
-                buyer: {$exists: true}
+                source: { $in: segment.sources || [] },
+                buyer: { $exists: true }
             });
 
         await request
             .group({
                 _id: '$buyer.phone',
-                firstPaymentDate: {$first: '$date'},
-                lastPaymentDate: {$last: '$date'},
-                paymentDates: {$push: {$dayOfWeek: {date: '$date', timezone: 'Europe/Moscow'}}},
-                tickets: {$push: '$tickets'}
+                firstPaymentDate: { $first: '$date' },
+                lastPaymentDate: { $last: '$date' },
+                paymentDates: { $push: { $dayOfWeek: { date: '$date', timezone: 'Europe/Moscow' } } },
+                tickets: { $push: '$tickets' }
             })
             .addFields({
                 tickets: {
                     $reduce: {
                         input: '$tickets',
                         initialValue: [],
-                        in: {$concatArrays: ['$$value', '$$this']},
+                        in: { $concatArrays: ['$$value', '$$this'] },
                     }
                 }
             })
@@ -155,7 +155,7 @@ export class SegmentsService {
                         in: {
                             $add: ['$$value', {
                                 $cond: {
-                                    if: {$eq: ['$this.quantity', 1]},
+                                    if: { $eq: ['$this.quantity', 1] },
                                     then: '$$this.price',
                                     else: {
                                         $multiply: ['$$this.price', '$$this.quantity'],
@@ -166,9 +166,9 @@ export class SegmentsService {
                     },
                 },
 
-                tickets: {$sum: '$tickets.quantity'}
+                tickets: { $sum: '$tickets.quantity' }
             })
-            .sort({'lastPaymentDate': -1})
+            .sort({ 'lastPaymentDate': -1 })
             .project({
                 _id: false,
                 phone: '$_id',
@@ -247,7 +247,7 @@ export class SegmentsService {
                         }
 
                         case 'buyers->average:bill(33)': {
-                           // console.log(resolve.earnings / resolve.tickets, paymentBill33)
+                            // console.log(resolve.earnings / resolve.tickets, paymentBill33)
                             return resolve.earnings / resolve.tickets <= paymentBill33
                         }
 
@@ -274,14 +274,14 @@ export class SegmentsService {
                  */
 
                 if (!filters.length) {
-                    await this.segmentSchema.updateOne({_id: new ObjectId(segment._id)}, {
+                    await this.segmentSchema.updateOne({ _id: new ObjectId(segment._id) }, {
                         updates: false,
                         enable: true,
                         then: {
-                            users: {segment: 0, database: databaseUsers},
-                            stats: {earnings: 0, averageEarnings: 0, orders: 0, averageUserEarnings: 0},
+                            users: { segment: 0, database: databaseUsers },
+                            stats: { earnings: 0, averageEarnings: 0, orders: 0, averageUserEarnings: 0 },
                             events: [],
-                            devices: {computer: 0, phone: 0},
+                            devices: { computer: 0, phone: 0 },
                             locations: [],
                             buyers: []
                         }
@@ -296,11 +296,11 @@ export class SegmentsService {
                     .allowDiskUse(true)
                     .match({
                         status: 'WIDGET_PAYMENT',
-                        source: {$in: segment.sources},
-                        'buyer.phone': {$in: filters}
+                        source: { $in: segment.sources },
+                        'buyer.phone': { $in: filters }
                     }).group({
                         _id: null,
-                        length: {$sum: 1},
+                        length: { $sum: 1 },
                     }).project({
                         segment: '$length',
                     }).then(async resolve => {
@@ -313,16 +313,16 @@ export class SegmentsService {
                             .allowDiskUse(true)
                             .match({
                                 status: 'WIDGET_PAYMENT',
-                                source: {$in: segment.sources},
-                                'buyer.phone': {$in: filters}
+                                source: { $in: segment.sources },
+                                'buyer.phone': { $in: filters }
                             })
-                            .group({_id: null, operations: {$push: '$$CURRENT'}})
+                            .group({ _id: null, operations: { $push: '$$CURRENT' } })
                             .addFields({
                                 tickets: {
                                     $reduce: {
                                         input: '$operations.tickets',
                                         initialValue: [],
-                                        in: {$concatArrays: ['$$value', '$$this']},
+                                        in: { $concatArrays: ['$$value', '$$this'] },
                                     },
                                 }
                             })
@@ -336,7 +336,7 @@ export class SegmentsService {
                                                 '$$value',
                                                 {
                                                     $cond: {
-                                                        if: {$eq: ['$this.quantity', 1]},
+                                                        if: { $eq: ['$this.quantity', 1] },
                                                         then: '$$this.price',
                                                         else: {
                                                             $multiply: ['$$this.price', '$$this.quantity'],
@@ -349,7 +349,7 @@ export class SegmentsService {
                                 }
                             })
                             .project({
-                                orders: {$size: '$operations'},
+                                orders: { $size: '$operations' },
                                 earnings: true,
                                 devices: {
                                     computer: {
@@ -398,26 +398,26 @@ export class SegmentsService {
                                     averageEarnings: resolve['orders'] ? resolve['earnings'] / resolve['orders'] : 0,
                                     averageUserEarnings: filters.length ? resolve['earnings'] / filters.length : 0,
                                     orders: Number(resolve['orders'])
-                                }, segmentDevices = resolve['devices'] || {computer: 0, phone: 0}
+                                }, segmentDevices = resolve['devices'] || { computer: 0, phone: 0 }
 
 
                                 await this.operationSchema.aggregate()
                                     .allowDiskUse(true)
                                     .match({
                                         status: 'WIDGET_PAYMENT',
-                                        source: {$in: segment.sources},
-                                        'buyer.phone': {$in: filters},
-                                        'event.name': {$ne: null, $exists: true}
+                                        source: { $in: segment.sources },
+                                        'buyer.phone': { $in: filters },
+                                        'event.name': { $ne: null, $exists: true }
                                     }).group({
                                         _id: '$event.name',
-                                        count: {$sum: 1}
+                                        count: { $sum: 1 }
                                     })
-                                    .sort({count: -1})
+                                    .sort({ count: -1 })
                                     .limit(10)
-                                    .group({_id: null, events: {$push: {name: '$_id', sales: '$count'}}})
-                                    .addFields({total: {$sum: '$events.sales'}})
+                                    .group({ _id: null, events: { $push: { name: '$_id', sales: '$count' } } })
+                                    .addFields({ total: { $sum: '$events.sales' } })
                                     .unwind('events')
-                                    .addFields({percent: {$floor: [{$multiply: [{$divide: ['$events.sales', '$total']}, 100]}]}})
+                                    .addFields({ percent: { $floor: [{ $multiply: [{ $divide: ['$events.sales', '$total'] }, 100] }] } })
                                     .project({
                                         _id: false,
                                         name: '$events.name',
@@ -428,14 +428,14 @@ export class SegmentsService {
                                             .allowDiskUse(true)
                                             .match({
                                                 status: 'WIDGET_PAYMENT',
-                                                source: {$in: segment.sources},
-                                                'buyer.phone': {$in: filters},
-                                                'addressInfo.city': {$ne: null, $exists: true}
+                                                source: { $in: segment.sources },
+                                                'buyer.phone': { $in: filters },
+                                                'addressInfo.city': { $ne: null, $exists: true }
                                             }).group({
                                                 _id: '$addressInfo.city',
-                                                count: {$sum: 1}
+                                                count: { $sum: 1 }
                                             })
-                                            .sort({count: -1})
+                                            .sort({ count: -1 })
                                             .limit(10)
                                             .project({
                                                 _id: false,
@@ -445,26 +445,26 @@ export class SegmentsService {
                                                 await this.operationSchema.aggregate()
                                                     .match({
                                                         status: 'WIDGET_PAYMENT',
-                                                        source: {$in: segment.sources},
-                                                        'buyer.phone': {$in: filters}
+                                                        source: { $in: segment.sources },
+                                                        'buyer.phone': { $in: filters }
                                                     })
                                                     .group({
                                                         _id: '$buyer.phone',
-                                                        tickets: {$push: '$tickets'},
-                                                        lastActivity: {$last: '$date'},
-                                                        firstActivity: {$first: '$date'},
-                                                        name: {$last: '$buyer.name'},
-                                                        gender: {$last: '$buyer.gender'},
-                                                        source: {$last: '$source'},
-                                                        transactions: {$sum: 1},
-                                                        event: {$last: '$event.name'}
+                                                        tickets: { $push: '$tickets' },
+                                                        lastActivity: { $last: '$date' },
+                                                        firstActivity: { $first: '$date' },
+                                                        name: { $last: '$buyer.name' },
+                                                        gender: { $last: '$buyer.gender' },
+                                                        source: { $last: '$source' },
+                                                        transactions: { $sum: 1 },
+                                                        event: { $last: '$event.name' }
                                                     })
                                                     .addFields({
                                                         tickets: {
                                                             $reduce: {
                                                                 input: '$tickets',
                                                                 initialValue: [],
-                                                                in: {$concatArrays: ['$$value', '$$this']},
+                                                                in: { $concatArrays: ['$$value', '$$this'] },
                                                             }
                                                         }
                                                     })
@@ -476,7 +476,7 @@ export class SegmentsService {
                                                                 in: {
                                                                     $add: ['$$value', {
                                                                         $cond: {
-                                                                            if: {$eq: ['$this.quantity', 1]},
+                                                                            if: { $eq: ['$this.quantity', 1] },
                                                                             then: '$$this.price',
                                                                             else: {
                                                                                 $multiply: ['$$this.price', '$$this.quantity'],
@@ -487,9 +487,9 @@ export class SegmentsService {
                                                             },
                                                         },
 
-                                                        tickets: {$sum: '$tickets.quantity'}
+                                                        tickets: { $sum: '$tickets.quantity' }
                                                     }).exec().then(async users => {
-                                                        await this.segmentSchema.updateOne({_id: new ObjectId(segment._id)}, {
+                                                        await this.segmentSchema.updateOne({ _id: new ObjectId(segment._id) }, {
                                                             updates: false,
                                                             enable: true,
                                                             then: {
@@ -555,7 +555,7 @@ export class SegmentsService {
 
     async list(userId: ObjectId): Promise<object[]> {
         const request = await this.segmentSchema.find({
-            access: {$elemMatch: {$eq: userId}}
+            access: { $elemMatch: { $eq: userId } }
         }, {
             _id: true,
             name: true,
@@ -565,7 +565,7 @@ export class SegmentsService {
             automation: true,
             'then.users': true,
             'then.stats': true
-        }).sort({last: -1}).exec().catch(() => {
+        }).sort({ last: -1 }).exec().catch(() => {
             return []
         })
 
@@ -575,19 +575,19 @@ export class SegmentsService {
     async configure(info: SegmentExecuteDTO, user: object) {
         switch (info.command) {
             case "segment->update":
-                return await this.segmentSchema.findOne({_id: new ObjectId(info.segment), enable: true, updates: false})
+                return await this.segmentSchema.findOne({ _id: new ObjectId(info.segment), enable: true, updates: false })
                     .exec()
                     .then(async (segment: Segments) => {
-                        if(!segment) {
-                            throw  new Error('segment not found or already in use')
+                        if (!segment) {
+                            throw new Error('segment not found or already in use')
                         }
 
                         const current = new Date();
                         if ((current.getTime() / 1000) - (Date.parse(segment.last.toISOString()) / 1000) < 60)
-                            throw  new Error('1 minute has passed since the last flashing');
+                            throw new Error('1 minute has passed since the last flashing');
 
-                       return await this.segmentSchema.findByIdAndUpdate(new ObjectId(segment._id),
-                            {enable: false, updates: true, last: new Date()})
+                        return await this.segmentSchema.findByIdAndUpdate(new ObjectId(segment._id),
+                            { enable: false, updates: true, last: new Date() })
                             .exec()
                             .then(() => {
                                 this.buildSegment(segment);
@@ -611,12 +611,12 @@ export class SegmentsService {
             case "segment->remove":
                 return await this.segmentSchema.deleteOne({
                     _id: new ObjectId(info.segment),
-                    access: {$elemMatch: {$eq: new ObjectId(user['_id'])}}
+                    access: { $elemMatch: { $eq: new ObjectId(user['_id']) } }
                 }).exec().then(resolve => {
                     return 'OK';
                 });
             case "segment->automatic":
-                if(info.automation == null || info.automation == undefined) {
+                if (info.automation == null || info.automation == undefined) {
                     throw new BadRequestException();
                 }
 

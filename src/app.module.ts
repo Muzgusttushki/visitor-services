@@ -10,36 +10,36 @@ import { format } from 'util';
 import { SegmentsModule } from './segments/segments.module';
 import { TrashModule } from './trash/trash.module';
 import { RegionsModule } from './services/regions/regions.module';
+import { CustomersModule } from './api/customers/customers.module';
+import { ActivityModule } from './api/dashboard/charts/activity/activity.module';
 
 
 const url = format(
   'mongodb://%s:%s@%s/db1?replicaSet=%s&authSource=%s&ssl=true',
-  'vis',
-  '6dr0x0u4ijBT&o^#saY@W5Bm',
+  'vst',
+  'Vh7usUCZydYRQqPP',
   [
-    'rc1c-fainpcouiaifsp97.mdb.yandexcloud.net:27018'
+    'rc1c-helkvhfjv7yt2k9n.mdb.yandexcloud.net:27018'
   ].join(','),
   'rs01',
   'db1'
 );
 
-console.log(url);
-
 const options = {
   useNewUrlParser: true,
-  replicaSet: {
-    sslCA: readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
-  },
+  // replicaSet: {
+  //   sslCA: readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
+  // },
   useUnifiedTopology: true,
   useFindAndModify: false,
   useCreateIndex: true,
 };
 
 @Module({
-  imports: [MongooseModule.forRoot(url, options),
+  imports: [MongooseModule.forRoot("mongodb://35.217.57.46:27018/db1", options),
     SignUpModule,
     ManagementModule,
     BuyersModule,
-    DashboardModule, OperationsModule, SegmentsModule, TrashModule, RegionsModule],
+    DashboardModule, OperationsModule, SegmentsModule, TrashModule, RegionsModule, CustomersModule, ActivityModule],
 })
 export class AppModule { }

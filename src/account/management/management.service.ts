@@ -20,6 +20,7 @@ export class ManagementService {
             .exec()
             .then(async resolve => {
                 if (!resolve) {
+                    console.log(resolve)
                     throw new BadGatewayException();
                 }
 

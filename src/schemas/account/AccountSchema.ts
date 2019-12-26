@@ -7,4 +7,5 @@ export const AccountSchema = new mongoose.Schema({
   pin: Number,
   companyName: String,
   eq: String,
+  access: Array<String>()
 });

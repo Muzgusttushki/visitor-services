@@ -7,4 +7,5 @@ export interface AccountObject extends Document {
   pin: number;
   company_name: string;
   eq: string;
+  access: string[];
 }

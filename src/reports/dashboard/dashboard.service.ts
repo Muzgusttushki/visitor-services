@@ -3,11 +3,12 @@ import {
     ForbiddenException,
     Injectable,
 } from '@nestjs/common';
-import {DashboardObject} from '../../transferDataObject/dashboard/dashboardObject';
-import {InjectModel} from '@nestjs/mongoose';
-import {OperationObject} from '../../transferDataObject/buyers/OperationObject';
-import {AccountObject} from '../../transferDataObject/account/AccountObject';
-import {Model} from 'mongoose';
+import { DashboardObject } from '../../transferDataObject/dashboard/dashboardObject';
+import { InjectModel } from '@nestjs/mongoose';
+import { OperationObject } from '../../transferDataObject/buyers/OperationObject';
+import { AccountObject } from '../../transferDataObject/account/AccountObject';
+import { Model } from 'mongoose';
+
 
 @Injectable()
 export class DashboardService {
@@ -15,6 +16,7 @@ export class DashboardService {
         @InjectModel('buyers')
         private readonly operationsSchema: Model<OperationObject>,
     ) {
+      //  this.graphicsSalesNew();
     }
 
     async getDashboardStats(stage: DashboardObject, session: AccountObject): Promise<object> {
@@ -32,7 +34,7 @@ export class DashboardService {
 
         timeRange.end.setUTCHours(23, 59, 59, 0);
 
-        const prepareSources = {source: {}};
+        const prepareSources = { source: {} };
         /**
          * @description Проверяем, не указали определенный источник в запросе.
          */
@@ -47,9 +49,9 @@ export class DashboardService {
                 throw new ForbiddenException();
             }
 
-            prepareSources.source = {$in: stage.sources};
+            prepareSources.source = { $in: stage.sources };
         } else {
-            prepareSources.source = {$in: session.sources};
+            prepareSources.source = { $in: session.sources };
         }
 
         const backToDays =
@@ -85,7 +87,7 @@ export class DashboardService {
          */
         const request = this.operationsSchema
             .aggregate([
-                {$match: {...prepareSources}},
+                { $match: { ...prepareSources } },
                 {
                     $group: {
                         _id: null, allOperations: {
@@ -97,7 +99,7 @@ export class DashboardService {
                                     phone: '$$CURRENT.buyer.phone',
                                     name: '$$CURRENT.buyer.name'
                                 },
-                                event: {name: '$$CURRENT.event.name'}
+                                event: { name: '$$CURRENT.event.name' }
                             }
                         }
                     }
@@ -110,9 +112,9 @@ export class DashboardService {
                                 as: 'item',
                                 cond: {
                                     $and: [
-                                        {$lte: ['$$item.date', previewTimeRange.end]},
-                                        {$gte: ['$$item.date', previewTimeRange.start]},
-                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                        { $lte: ['$$item.date', previewTimeRange.end] },
+                                        { $gte: ['$$item.date', previewTimeRange.start] },
+                                        { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
                                     ],
                                 },
                             },
@@ -123,9 +125,9 @@ export class DashboardService {
                                 as: 'item',
                                 cond: {
                                     $and: [
-                                        {$lte: ['$$item.date', timeRange.end]},
-                                        {$gte: ['$$item.date', timeRange.start]},
-                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                        { $lte: ['$$item.date', timeRange.end] },
+                                        { $gte: ['$$item.date', timeRange.start] },
+                                        { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
                                     ],
                                 },
                             },
@@ -136,8 +138,8 @@ export class DashboardService {
                                 as: 'item',
                                 cond: {
                                     $and: [
-                                        {$lte: ['$$item.date', timeRange.end]},
-                                        {$gte: ['$$item.date', timeRange.start]},
+                                        { $lte: ['$$item.date', timeRange.end] },
+                                        { $gte: ['$$item.date', timeRange.start] },
                                     ],
                                 },
                             },
@@ -148,8 +150,8 @@ export class DashboardService {
                                 as: 'item',
                                 cond: {
                                     $and: [
-                                        {$lte: ['$$item.date', previewTimeRange.end]},
-                                        {$gte: ['$$item.date', previewTimeRange.start]},
+                                        { $lte: ['$$item.date', previewTimeRange.end] },
+                                        { $gte: ['$$item.date', previewTimeRange.start] },
                                     ],
                                 },
                             },
@@ -162,14 +164,14 @@ export class DashboardService {
                             $reduce: {
                                 input: '$sales.tickets',
                                 initialValue: [],
-                                in: {$concatArrays: ['$$value', '$$this']},
+                                in: { $concatArrays: ['$$value', '$$this'] },
                             },
                         },
                         previousTickets: {
                             $reduce: {
                                 input: '$previousSales.tickets',
                                 initialValue: [],
-                                in: {$concatArrays: ['$$value', '$$this']},
+                                in: { $concatArrays: ['$$value', '$$this'] },
                             },
                         },
                     },
@@ -185,7 +187,7 @@ export class DashboardService {
                                         '$$value',
                                         {
                                             $cond: {
-                                                if: {$eq: ['$this.quantity', 1]},
+                                                if: { $eq: ['$this.quantity', 1] },
                                                 then: '$$this.price',
                                                 else: {
                                                     $multiply: ['$$this.price', '$$this.quantity'],
@@ -206,7 +208,7 @@ export class DashboardService {
                                         '$$value',
                                         {
                                             $cond: {
-                                                if: {$eq: ['$this.quantity', 1]},
+                                                if: { $eq: ['$this.quantity', 1] },
                                                 then: '$$this.price',
                                                 else: {
                                                     $multiply: ['$$this.price', '$$this.quantity'],
@@ -222,12 +224,12 @@ export class DashboardService {
                 {
                     $project: {
                         _id: false,
-                        operations: {$size: '$operations'},
-                        previousOperations: {$size: '$previousOperations'},
-                        sales: {$size: '$sales'},
-                        previousSales: {$size: '$previousSales'},
-                        events: {$size: {$setUnion: ['$sales.event.name', []]}},
-                        previousEvents: {$size: {$setUnion: ['$previousSales.event.name', []]}},
+                        operations: { $size: '$operations' },
+                        previousOperations: { $size: '$previousOperations' },
+                        sales: { $size: '$sales' },
+                        previousSales: { $size: '$previousSales' },
+                        events: { $size: { $setUnion: ['$sales.event.name', []] } },
+                        previousEvents: { $size: { $setUnion: ['$previousSales.event.name', []] } },
                         earnings: true,
                         previousEarnings: true,
                         buyers: {
@@ -240,13 +242,13 @@ export class DashboardService {
                                                 as: 'item',
                                                 cond: {
                                                     $and: [
-                                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                                        { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
                                                     ],
                                                 },
                                             }
                                         }
                                     },
-                                    in: {$setUnion: ['$$buyers.buyer.phone', []]}
+                                    in: { $setUnion: ['$$buyers.buyer.phone', []] }
                                 }
                             }
                         },
@@ -260,15 +262,15 @@ export class DashboardService {
                                                 as: 'item',
                                                 cond: {
                                                     $and: [
-                                                        {$gte: ['$$item.date', timeRange.start]},
-                                                        {$lte: ['$$item.date', timeRange.end]},
-                                                        {$eq: ['$$item.status', 'WIDGET_PAYMENT']},
+                                                        { $gte: ['$$item.date', timeRange.start] },
+                                                        { $lte: ['$$item.date', timeRange.end] },
+                                                        { $eq: ['$$item.status', 'WIDGET_PAYMENT'] },
                                                     ],
                                                 },
                                             }
                                         }
                                     },
-                                    in: {$setUnion: ['$$buyers.buyer.phone', []]}
+                                    in: { $setUnion: ['$$buyers.buyer.phone', []] }
                                 }
                             }
                         }
@@ -281,9 +283,9 @@ export class DashboardService {
                          */
                         percentOperations: {
                             $cond: {
-                                if: {$eq: ['$previousOperations', 0]},
+                                if: { $eq: ['$previousOperations', 0] },
                                 then: 0,
-                                else: {$subtract: [{$multiply: [{$divide: ['$operations', '$previousOperations']}, 100]}, 100]}
+                                else: { $subtract: [{ $multiply: [{ $divide: ['$operations', '$previousOperations'] }, 100] }, 100] }
                             }
                         },
                         previousOperations: true,
@@ -294,9 +296,9 @@ export class DashboardService {
                          */
                         percentSales: {
                             $cond: {
-                                if: {$eq: ['$previousSales', 0]},
+                                if: { $eq: ['$previousSales', 0] },
                                 then: 0,
-                                else: {$subtract: [{$multiply: [{$divide: ['$sales', '$previousSales']}, 100]}, 100]}
+                                else: { $subtract: [{ $multiply: [{ $divide: ['$sales', '$previousSales'] }, 100] }, 100] }
                             }
                         },
                         sales: true,
@@ -307,9 +309,9 @@ export class DashboardService {
                          */
                         percentEarnings: {
                             $cond: {
-                                if: {$eq: ['$previousEarnings', 0]},
+                                if: { $eq: ['$previousEarnings', 0] },
                                 then: 0,
-                                else: {$subtract: [{$multiply: [{$divide: ['$earnings', '$previousEarnings']}, 100]}, 100]}
+                                else: { $subtract: [{ $multiply: [{ $divide: ['$earnings', '$previousEarnings'] }, 100] }, 100] }
                             }
                         },
                         earnings: true,
@@ -320,9 +322,9 @@ export class DashboardService {
                          */
                         percentEvents: {
                             $cond: {
-                                if: {$eq: ['$previousEvents', 0]},
+                                if: { $eq: ['$previousEvents', 0] },
                                 then: 0,
-                                else: {$subtract: [{$multiply: [{$divide: ['$events', '$previousEvents']}, 100]}, 100]}
+                                else: { $subtract: [{ $multiply: [{ $divide: ['$events', '$previousEvents'] }, 100] }, 100] }
                             }
                         },
                         events: true,
@@ -335,26 +337,26 @@ export class DashboardService {
                         previousBuyers: true,
                         percentBuyers: {
                             $cond: {
-                                if: {$eq: ['$buyers', 0]},
+                                if: { $eq: ['$buyers', 0] },
                                 then: 0,
-                                else: {$multiply: [{$divide: ['$previousBuyers', '$buyers']}, 100]}
+                                else: { $multiply: [{ $divide: ['$previousBuyers', '$buyers'] }, 100] }
                             }
                         },
 
 
                         previousAverageEarnings: {
                             $cond: {
-                                if: {$eq: ['$previousSales', 0]},
+                                if: { $eq: ['$previousSales', 0] },
                                 then: 0,
-                                else: {$divide: ['$previousEarnings', '$previousSales']}
+                                else: { $divide: ['$previousEarnings', '$previousSales'] }
                             }
                         },
 
                         averageEarnings: {
                             $cond: {
-                                if: {$eq: ['$sales', 0]},
+                                if: { $eq: ['$sales', 0] },
                                 then: 0,
-                                else: {$divide: ['$earnings', '$sales']}
+                                else: { $divide: ['$earnings', '$sales'] }
                             }
                         }
                     }
@@ -362,9 +364,9 @@ export class DashboardService {
                     $addFields: {
                         percentAverageEarnings: {
                             $cond: {
-                                if: {$eq: ['$averageEarnings', 0]},
+                                if: { $eq: ['$averageEarnings', 0] },
                                 then: 0,
-                                else: {$multiply: [{$divide: ['$previousAverageEarnings', '$averageEarnings']}, 100]}
+                                else: { $multiply: [{ $divide: ['$previousAverageEarnings', '$averageEarnings'] }, 100] }
                             }
                         }
                     }
@@ -382,8 +384,8 @@ export class DashboardService {
      */
     async graphicsDevices(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
         const request = await this.operationsSchema.aggregate([
-            {$match: insulation},
-            {$group: {_id: null, devices: {$push: {name: '$os.name', status: '$status'}}}},
+            { $match: insulation },
+            { $group: { _id: null, devices: { $push: { name: '$os.name', status: '$status' } } } },
             {
                 $project: {
                     _id: false,
@@ -397,8 +399,8 @@ export class DashboardService {
                                     as: 'item',
                                     cond: {
                                         $and: [
-                                            {$in: ['$$item.name', ['iOS', 'Android']]},
-                                            {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
+                                            { $in: ['$$item.name', ['iOS', 'Android']] },
+                                            { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
                                         ]
                                     }
                                 }
@@ -412,8 +414,8 @@ export class DashboardService {
                                     as: 'item',
                                     cond: {
                                         $and: [
-                                            {$in: ['$$item.name', ['OS X', 'Windows', 'Linux']]},
-                                            {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
+                                            { $in: ['$$item.name', ['OS X', 'Windows', 'Linux']] },
+                                            { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
                                         ]
                                     }
                                 }
@@ -429,8 +431,8 @@ export class DashboardService {
                                     as: 'item',
                                     cond: {
                                         $and: [
-                                            {$in: ['$$item.name', ['iOS', 'Android']]},
-                                            {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
+                                            { $in: ['$$item.name', ['iOS', 'Android']] },
+                                            { $ne: ['$$item.status', 'WIDGET_PAYMENT'] }
                                         ]
                                     }
                                 }
@@ -444,8 +446,8 @@ export class DashboardService {
                                     as: 'item',
                                     cond: {
                                         $and: [
-                                            {$in: ['$$item.name', ['OS X', 'Windows', 'Linux']]},
-                                            {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
+                                            { $in: ['$$item.name', ['OS X', 'Windows', 'Linux']] },
+                                            { $ne: ['$$item.status', 'WIDGET_PAYMENT'] }
                                         ]
                                     }
                                 }
@@ -463,14 +465,14 @@ export class DashboardService {
                             $subtract: [{
                                 $size: {
                                     $filter:
-                                        {
-                                            input: '$devices',
-                                            as: 'item',
-                                            cond: {$eq: ['$$item.status', 'WIDGET_PAYMENT']}
-                                        }
+                                    {
+                                        input: '$devices',
+                                        as: 'item',
+                                        cond: { $eq: ['$$item.status', 'WIDGET_PAYMENT'] }
+                                    }
                                 }
                             },
-                                {$sum: ['$transactions.phones', '$transactions.desktops']}]
+                            { $sum: ['$transactions.phones', '$transactions.desktops'] }]
                         }
                     },
 
@@ -481,14 +483,14 @@ export class DashboardService {
                             $subtract: [{
                                 $size: {
                                     $filter:
-                                        {
-                                            input: '$devices',
-                                            as: 'item',
-                                            cond: {$ne: ['$$item.status', 'WIDGET_PAYMENT']}
-                                        }
+                                    {
+                                        input: '$devices',
+                                        as: 'item',
+                                        cond: { $ne: ['$$item.status', 'WIDGET_PAYMENT'] }
+                                    }
                                 }
                             },
-                                {$sum: ['$operations.phones', '$operations.desktops']}]
+                            { $sum: ['$operations.phones', '$operations.desktops'] }]
                         }
                     }
                 }
@@ -498,8 +500,78 @@ export class DashboardService {
         return request[0] || null;
     }
 
+    async graphicsSalesNew() {
+        const dates = [new Date(2019, 9, 1), new Date()];
+        const d_c = [new Date(2019, 9, 1), new Date()];
+        dates[0].setUTCHours(0, 0, 0, 0);
+
+        const end_date = new Date(dates[0]);
+        const distance = (Math.ceil(Math.abs(dates[1].getTime() -
+            dates[0].getTime()) / (1000 * 3600 * 24))) || 1;
+        const hours = (distance * 24) / 12;
+
+        const c = new Array(12).fill(1).map(() => {
+            try {
+                end_date.setUTCHours(end_date.getUTCHours() + hours);
+                end_date.setUTCMilliseconds(end_date.getUTCMilliseconds() - 1)
+                end_date.setUTCHours(end_date.getUTCHours(), end_date.getUTCMinutes(), end_date.getUTCSeconds(), 999)
+
+                return {
+                    start: new Date(dates[0]),
+                    end: new Date(end_date)
+                }
+            } finally {
+                dates[0].setUTCHours(dates[0].getUTCHours() + hours);
+            }
+        });
+
+
+        let req = this.operationsSchema.aggregate([]);
+
+        req.match({
+            status: "WIDGET_PAYMENT",
+            date: {
+                $gte: d_c[0],
+                $lte: d_c[1]
+            }
+        })
+
+        req.addFields({
+            _stage_0: {
+                $filter: {
+                    input: c,
+                    as: "cc",
+                    cond: {
+                        $and: [
+                            { $gte: ["$date", "$$cc.start"] },
+                            { $lte: ["$date", "$$cc.end"] }
+                        ]
+                    }
+                }
+            }
+        })
+            .group({
+                _id: "$_stage_0",
+                q: { $sum: 1 }
+            })
+            .group({
+                _id: null,
+                xAxis: { $push: "$q" },
+                yAxis: {
+                    $push: { $arrayElemAt: ["$_id", 0] }
+                }
+            })
+            .project({
+                _id: false,
+                yAxis: true,
+                xAxis: true
+            })
+
+        console.log(JSON.stringify(await req.exec()))
+    }
+
     async graphicsSales(stage: DashboardObject, insulation: Record<string, object>): Promise<object> {
-        const {date} = insulation;
+        const { date } = insulation;
 
         const distance = (Math.ceil(Math.abs(new Date(date['$lte']).getTime() -
             new Date(date['$gte']).getTime()) / (1000 * 3600 * 24))) || 1;
@@ -532,9 +604,9 @@ export class DashboardService {
                         as: 'as',
                         cond: {
                             $and: [
-                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
-                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
-                                {$eq: ['$$as.status', 'WIDGET_PAYMENT']}
+                                { $gte: ['$$as.date', { $toDate: start.toISOString() }] },
+                                { $lte: ['$$as.date', { $toDate: end.toISOString() }] },
+                                { $eq: ['$$as.status', 'WIDGET_PAYMENT'] }
                             ]
                         }
                     }
@@ -547,9 +619,9 @@ export class DashboardService {
                         as: 'as',
                         cond: {
                             $and: [
-                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
-                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
-                                {$ne: ['$$as.status', 'WIDGET_PAYMENT']}
+                                { $gte: ['$$as.date', { $toDate: start.toISOString() }] },
+                                { $lte: ['$$as.date', { $toDate: end.toISOString() }] },
+                                { $ne: ['$$as.status', 'WIDGET_PAYMENT'] }
                             ]
                         }
                     }
@@ -566,20 +638,20 @@ export class DashboardService {
                                         as: 'as',
                                         cond: {
                                             $and: [
-                                                {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
-                                                {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
-                                                {$eq: ['$$as.status', 'WIDGET_PAYMENT']}
+                                                { $gte: ['$$as.date', { $toDate: start.toISOString() }] },
+                                                { $lte: ['$$as.date', { $toDate: end.toISOString() }] },
+                                                { $eq: ['$$as.status', 'WIDGET_PAYMENT'] }
                                             ]
                                         }
                                     }
                                 },
                                 initialValue: [],
-                                in: {$concatArrays: ['$$value', '$$this.tickets']}
+                                in: { $concatArrays: ['$$value', '$$this.tickets'] }
                             }
                         }
                     },
 
-                    in: {$sum: '$$values.quantity'}
+                    in: { $sum: '$$values.quantity' }
                 }
             });
             filterUsers.push({
@@ -591,17 +663,17 @@ export class DashboardService {
                                 as: 'as',
                                 cond: {
                                     $and: [
-                                        {$gte: ['$$as.date', {$toDate: start.toISOString()}]},
-                                        {$lte: ['$$as.date', {$toDate: end.toISOString()}]},
-                                        {$eq: ['$$as.status', 'WIDGET_PAYMENT']},
-                                        {$ne: ['$$as.phone', null]}
+                                        { $gte: ['$$as.date', { $toDate: start.toISOString() }] },
+                                        { $lte: ['$$as.date', { $toDate: end.toISOString() }] },
+                                        { $eq: ['$$as.status', 'WIDGET_PAYMENT'] },
+                                        { $ne: ['$$as.phone', null] }
                                     ]
                                 }
                             }
 
                         }
                     },
-                    in: {$size: {$setUnion: ['$$values.phone']}}
+                    in: { $size: { $setUnion: ['$$values.phone'] } }
                 }
             });
 
@@ -612,11 +684,11 @@ export class DashboardService {
         return await this.operationsSchema.aggregate()
             .match(insulation)
             .group({
-                _id: '$_id', date: {$last: '$date'}, phone: {$last: '$buyer.phone'},
-                status: {$last: '$status'}, tickets: {$last: '$tickets'}
+                _id: '$_id', date: { $last: '$date' }, phone: { $last: '$buyer.phone' },
+                status: { $last: '$status' }, tickets: { $last: '$tickets' }
             })
-            .group({_id: null, operations: {$push: '$$CURRENT'}})
-            .project({_id: false, filterOperations, filterSales, filterTickets, filterUsers, filterDates})
+            .group({ _id: null, operations: { $push: '$$CURRENT' } })
+            .project({ _id: false, filterOperations, filterSales, filterTickets, filterUsers, filterDates })
             .exec()
             .then(resolve => {
                 resolve = resolve.shift() || {};
@@ -655,15 +727,15 @@ export class DashboardService {
                 {
                     $match: {
                         ...insulation, status: 'WIDGET_PAYMENT',
-                        'addressInfo.city': {$exists: true, $ne: null}
+                        'addressInfo.city': { $exists: true, $ne: null }
                     }
                 },
-                {$group: {_id: '$addressInfo.city', count: {$sum: 1}}},
-                {$sort: {count: -1}},
-                {$limit: 5},
-                {$project: {_id: false, name: '$_id', count: true}},
-                {$group: {_id: null, labels: {$push: '$name'}, data: {$push: '$count'}}},
-                {$project: {_id: false}}
+                { $group: { _id: '$addressInfo.city', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 5 },
+                { $project: { _id: false, name: '$_id', count: true } },
+                { $group: { _id: null, labels: { $push: '$name' }, data: { $push: '$count' } } },
+                { $project: { _id: false } }
             ])
             .exec());
         return request.shift()
@@ -673,14 +745,14 @@ export class DashboardService {
         const request = await this.operationsSchema.aggregate([
             {
                 $match: {
-                    'event.name': {$exists: true, $ne: null},
+                    'event.name': { $exists: true, $ne: null },
                     status: 'WIDGET_PAYMENT',
                     ...insulation
                 },
             },
-            {$group: {_id: '$event.name', count: {$sum: 1}},},
-            {$sort: {count: -1}},
-            {$limit: 10},
+            { $group: { _id: '$event.name', count: { $sum: 1 } }, },
+            { $sort: { count: -1 } },
+            { $limit: 10 },
             {
                 $project: {
                     _id: false,
@@ -689,9 +761,9 @@ export class DashboardService {
                 },
             },
 
-            {$group: {_id: null, events: {$push: '$$CURRENT'}}},
-            {$project: {_id: false, total: {$sum: '$events.count'}, events: true}},
-            {$unwind: '$events'},
+            { $group: { _id: null, events: { $push: '$$CURRENT' } } },
+            { $project: { _id: false, total: { $sum: '$events.count' }, events: true } },
+            { $unwind: '$events' },
             {
                 $group: {
                     _id: null,
@@ -699,12 +771,12 @@ export class DashboardService {
                         $push: {
                             name: '$events.name',
                             sales: '$events.count',
-                            percent: {$floor: {$multiply: [{$divide: ['$events.count', '$total']}, 100]}}
+                            percent: { $floor: { $multiply: [{ $divide: ['$events.count', '$total'] }, 100] } }
                         }
                     }
                 }
             },
-            {$project: {_id: false}}
+            { $project: { _id: false } }
         ]).exec()
 
         return request.shift();
@@ -715,11 +787,11 @@ export class DashboardService {
             {
                 $match: {
                     source: insulation.source, status: 'WIDGET_PAYMENT',
-                    'buyer.phone': {$exists: true, $ne: null}
+                    'buyer.phone': { $exists: true, $ne: null }
                 }
             },
-            {$group: {_id: '$buyer.phone', date: {$first: '$date'}}},
-            {$group: {_id: null, buyers: {$push: '$$CURRENT'}}},
+            { $group: { _id: '$buyer.phone', date: { $first: '$date' } } },
+            { $group: { _id: null, buyers: { $push: '$$CURRENT' } } },
             {
                 $project: {
                     _id: false,
@@ -734,8 +806,8 @@ export class DashboardService {
                                 as: 'item',
                                 cond: {
                                     $and: [
-                                        {$gte: ['$$item.date', insulation['date']['$gte']]},
-                                        {$lte: ['$$item.date', insulation['date']['$lte']]}
+                                        { $gte: ['$$item.date', insulation['date']['$gte']] },
+                                        { $lte: ['$$item.date', insulation['date']['$lte']] }
                                     ],
                                 },
                             }
@@ -754,8 +826,8 @@ export class DashboardService {
                 $match: {
                     ...insulation,
                     status: 'WIDGET_PAYMENT',
-                    tickets: {$exists: true, $ne: null},
-                    'tickets.quantity': {$gte: 1}
+                    tickets: { $exists: true, $ne: null },
+                    'tickets.quantity': { $gte: 1 }
                 }
             },
             {
@@ -763,16 +835,16 @@ export class DashboardService {
                     _id: null,
                     tickets: {
                         $push: {
-                            quantity: {$sum: '$$CURRENT.tickets.quantity'}
+                            quantity: { $sum: '$$CURRENT.tickets.quantity' }
                         }
                     }
                 }
             },
-            {$project: {_id: false, tickets: '$tickets.quantity'}},
-            {$unwind: '$tickets'},
-            {$group: {_id: '$$CURRENT.tickets', count: {$sum: 1}}},
-            {$project: {tickets: '$_id', count: true}},
-            {$group: {_id: null, total: {$push: '$$CURRENT'}}},
+            { $project: { _id: false, tickets: '$tickets.quantity' } },
+            { $unwind: '$tickets' },
+            { $group: { _id: '$$CURRENT.tickets', count: { $sum: 1 } } },
+            { $project: { tickets: '$_id', count: true } },
+            { $group: { _id: null, total: { $push: '$$CURRENT' } } },
             {
                 $project: {
                     _id: false,
@@ -787,13 +859,13 @@ export class DashboardService {
                                             as: 'item',
                                             cond: {
                                                 $and: [
-                                                    {$eq: ['$$item.tickets', 1]},
+                                                    { $eq: ['$$item.tickets', 1] },
                                                 ],
                                             },
                                         }
                                     }
                                 },
-                                in: {$sum: '$$ticket.count'}
+                                in: { $sum: '$$ticket.count' }
                             }
                         },
 
@@ -807,13 +879,13 @@ export class DashboardService {
                                             as: 'item',
                                             cond: {
                                                 $and: [
-                                                    {$eq: ['$$item.tickets', 2]},
+                                                    { $eq: ['$$item.tickets', 2] },
                                                 ],
                                             },
                                         }
                                     }
                                 },
-                                in: {$sum: '$$ticket.count'}
+                                in: { $sum: '$$ticket.count' }
                             }
                         },
 
@@ -827,13 +899,13 @@ export class DashboardService {
                                             as: 'item',
                                             cond: {
                                                 $and: [
-                                                    {$eq: ['$$item.tickets', 3]},
+                                                    { $eq: ['$$item.tickets', 3] },
                                                 ],
                                             },
                                         }
                                     }
                                 },
-                                in: {$sum: '$$ticket.count'}
+                                in: { $sum: '$$ticket.count' }
                             }
                         },
 
@@ -849,13 +921,13 @@ export class DashboardService {
                                             as: 'item',
                                             cond: {
                                                 $and: [
-                                                    {$eq: ['$$item.tickets', 4]},
+                                                    { $eq: ['$$item.tickets', 4] },
                                                 ],
                                             },
                                         }
                                     }
                                 },
-                                in: {$sum: '$$ticket.count'}
+                                in: { $sum: '$$ticket.count' }
                             }
                         },
 
@@ -871,13 +943,13 @@ export class DashboardService {
                                             as: 'item',
                                             cond: {
                                                 $and: [
-                                                    {$gte: ['$$item.tickets', 5]},
+                                                    { $gte: ['$$item.tickets', 5] },
                                                 ],
                                             },
                                         }
                                     }
                                 },
-                                in: {$sum: '$$ticket.count'}
+                                in: { $sum: '$$ticket.count' }
                             }
                         },
                     ]
