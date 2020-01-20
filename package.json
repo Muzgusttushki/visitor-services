@@ -27,6 +27,7 @@
     "@nestjs/passport": "^6.1.0",
     "@nestjs/platform-express": "^6.0.0",
     "axios": "^0.19.0",
+    "canvas-sketch": "^0.7.1",
     "class-transformer": "^0.2.3",
     "class-validator": "^0.10.0",
     "compression": "^1.7.4",
@@ -37,7 +38,8 @@
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",
     "rxjs": "^6.3.3",
-    "ssh2-sftp-client": "^4.2.2"
+    "ssh2-sftp-client": "^4.2.2",
+    "three": "^0.112.1"
   },
   "devDependencies": {
     "@compodoc/compodoc": "^1.1.10",

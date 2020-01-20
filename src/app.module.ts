@@ -15,28 +15,29 @@ import { ActivityModule } from './api/dashboard/charts/activity/activity.module'
 
 
 const url = format(
-  'mongodb://%s:%s@%s/db1?replicaSet=%s&authSource=%s&ssl=true',
+  'mongodb://%s:%s@%s/vst?replicaSet=%s&authSource=%s&ssl=true',
   'vst',
-  'Vh7usUCZydYRQqPP',
+  '3yGCxwcR8v6fEL5rWjaqh8veukKFCg47hzHP',
   [
-    'rc1c-helkvhfjv7yt2k9n.mdb.yandexcloud.net:27018'
+    // 'rc1a-ubiyvdri57npqa0y.mdb.yandexcloud.net:27018',
+    'rc1c-qkouniz9jsicq8d1.mdb.yandexcloud.net:27018'
   ].join(','),
   'rs01',
-  'db1'
+  'vst'
 );
 
 const options = {
   useNewUrlParser: true,
-  // replicaSet: {
-  //   sslCA: readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
-  // },
+  replicaSet: {
+    sslCA: readFileSync('/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt')
+  },
   useUnifiedTopology: true,
   useFindAndModify: false,
   useCreateIndex: true,
 };
 
 @Module({
-  imports: [MongooseModule.forRoot("mongodb://35.217.57.46:27018/db1", options),
+  imports: [MongooseModule.forRoot(url, options),
     SignUpModule,
     ManagementModule,
     BuyersModule,
